@@ -1,3 +1,5 @@
+use std::io::Chain;
+
 use macroquad::prelude::*;
 
 const SIZE: f32 = 60.;
@@ -16,13 +18,11 @@ enum Team {
     Black,
 }
 
-struct MoveInfo {
-
-}
+struct MoveInfo {}
 
 #[derive(Debug, Clone, Copy)]
 enum Figure {
-    Pawn(Team),
+    Pawn(Team, bool),
     King(Team),
     Queen(Team),
     Knight(Team),
@@ -31,15 +31,75 @@ enum Figure {
 }
 
 impl Figure {
-    pub fn valid_moves(&self) {
+    pub fn valid_moves(
+        &self,
+        (row, col): (usize, usize),
+        fields: &[[Field; 8]; 8],
+    ) -> Vec<(usize, usize)> {
         match self {
-            Figure::Pawn(_) => todo!(),
-            Figure::King(_) => todo!(),
+            Figure::Pawn(team, first_move) => match team {
+                Team::White => {
+                    let mut moves = vec![(row - 1, col)];
+                    if *first_move {
+                        moves.push((row - 2, col))
+                    }
+                    moves
+                }
+                Team::Black => {
+                    let mut moves = vec![(row + 1, col)];
+                    if *first_move {
+                        moves.push((row + 2, col))
+                    }
+                    moves
+                }
+            },
+            Figure::King(_) => {
+                vec![
+                    (row + 1, col),
+                    (row, col + 1),
+                    (row - 1, col),
+                    (row, col - 1),
+                ]
+            }
             Figure::Queen(_) => todo!(),
-            Figure::Knight(_) => todo!(),
-            Figure::Rook(_) => todo!(),
-            Figure::Bishop(_) => todo!(),
+            Figure::Knight(_) => vec![
+                is_move_valid((row + 2, col + 1), fields),
+                is_move_valid((row + 2, col - 1), fields),
+                is_move_valid((row - 2, col + 1), fields),
+                is_move_valid((row - 2, col - 1), fields),
+                is_move_valid((row - 1, col - 2), fields),
+                is_move_valid((row - 1, col + 2), fields),
+                is_move_valid((row + 1, col + 2), fields),
+                is_move_valid((row + 1, col - 2), fields),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
+            Figure::Rook(_) => (1..8)
+                .map_while(|add| is_move_valid((row, col + add), fields))
+                .chain((1..8).map_while(|add| is_move_valid((row, col - add), fields)))
+                .chain((1..8).map_while(|add| is_move_valid((row + add, col), fields)))
+                .chain((1..8).map_while(|add| is_move_valid((row - add, col), fields)))
+                .collect::<Vec<(usize, usize)>>(),
+            Figure::Bishop(_) => (1..8)
+                .map_while(|add| is_move_valid((row + add, col + add), fields))
+                .chain((1..8).map_while(|sub| is_move_valid((row - sub, col - sub), fields)))
+                .chain((1..8).map_while(|add| is_move_valid((row - add, col + add), fields)))
+                .chain((1..8).map_while(|add| is_move_valid((row + add, col - add), fields)))
+                .collect::<Vec<(usize, usize)>>(),
         }
+    }
+}
+
+
+fn is_move_valid((row, col): (usize, usize), fields: &[[Field; 8]; 8]) -> Option<(usize, usize)> {
+    if row >= ROWS || col >= COLS {
+        return None;
+    }
+
+    match fields[row][col].figure {
+        Some(_) => None,
+        None => Some((row, col)),
     }
 }
 
@@ -58,7 +118,7 @@ impl Field {
 
         if let Some(figure) = self.figure {
             match figure {
-                Figure::Pawn(team) => draw_rectangle(
+                Figure::Pawn(team, _) => draw_rectangle(
                     self.x + 15.,
                     self.y + 15.,
                     SIZE / 2.,
@@ -73,18 +133,28 @@ impl Field {
                     Team::White => todo!(),
                     Team::Black => todo!(),
                 },
-                Figure::Knight(team) => match team {
-                    Team::White => todo!(),
-                    Team::Black => todo!(),
-                },
-                Figure::Rook(team) => match team {
-                    Team::White => todo!(),
-                    Team::Black => todo!(),
-                },
-                Figure::Bishop(team) => match team {
-                    Team::White => todo!(),
-                    Team::Black => todo!(),
-                },
+                Figure::Knight(team) => draw_rectangle(
+                    self.x + 15.,
+                    self.y + 15.,
+                    SIZE / 2.,
+                    SIZE / 2.,
+                    COLORS[team as usize],
+                ),
+    
+                Figure::Rook(team) => draw_rectangle(
+                    self.x + 15.,
+                    self.y + 15.,
+                    SIZE / 2.,
+                    SIZE / 2.,
+                    COLORS[team as usize],
+                ),
+                Figure::Bishop(team) => draw_rectangle(
+                    self.x + 15.,
+                    self.y + 15.,
+                    SIZE / 2.,
+                    SIZE / 2.,
+                    COLORS[team as usize],
+                ),
             }
 
             if self.selected {
@@ -97,7 +167,6 @@ impl Field {
                     DARKGREEN,
                 );
             }
-
         }
     }
 }
@@ -123,14 +192,17 @@ impl Chess {
             }
         }
 
+        let field = &mut fields[3][3];
+        field.figure = Some(Figure::Bishop(Team::White));
+
         for col in 0..COLS {
             let field = &mut fields[1][col];
-            field.figure = Some(Figure::Pawn(Team::Black));
+            field.figure = Some(Figure::Pawn(Team::Black, true));
         }
 
         for col in 0..COLS {
             let field = &mut fields[6][col];
-            field.figure = Some(Figure::Pawn(Team::White));
+            field.figure = Some(Figure::Pawn(Team::White, true));
         }
 
         Chess { fields }
@@ -189,6 +261,8 @@ async fn main() {
 
     let mut selected_field: Option<(usize, usize)> = None;
 
+    let mut moves = vec![];
+
     loop {
         clear_background(WHITE);
 
@@ -199,6 +273,7 @@ async fn main() {
             if let Some((row, col)) = field {
                 if let Some((row, col)) = selected_field {
                     chess.fields[row][col].selected = false;
+                    moves = vec![];
                 }
 
                 let field = &mut chess.fields[row][col];
@@ -207,9 +282,17 @@ async fn main() {
                 selected_field = Some(field.idxs);
 
                 if let Some(figure) = field.figure {
-                    // show valid moves
-
+                    moves = figure.valid_moves(field.idxs, &chess.fields);
                 }
+            }
+        }
+
+        if let Some((row, col)) = selected_field {
+            let field = chess.fields[row][col];
+            // show valid moves
+            for (row, col) in &moves {
+                let field = chess.fields[*row][*col];
+                draw_circle(field.x + SIZE / 2., field.y + SIZE / 2., 12., YELLOW);
             }
         }
 
