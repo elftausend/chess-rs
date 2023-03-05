@@ -39,7 +39,13 @@ impl Figure {
         match self {
             Figure::Pawn(team, first_move) => match team {
                 Team::White => {
-                    let mut moves = vec![(row - 1, col)];
+                    let mut moves = vec![];
+                    if let Some(mv) = is_move_valid((row - 1, col), fields) {
+                        moves.push(mv)
+                    } else {
+                        return vec![]
+                    }
+
                     if *first_move {
                         if let Some(mv) = is_move_valid((row - 2, col), fields) {
                             moves.push(mv)
@@ -303,7 +309,14 @@ impl Chess {
     }
 
     pub fn move_figure(&mut self, from: (usize, usize), (row_to, col_to): (usize, usize)) {
-        self.fields[row_to][col_to].figure = self.field(from).figure;
+        let mut figure = &mut self.field_mut(from).figure;
+        if let Some(figure) = &mut figure {
+            if let Figure::Pawn(_, first_move) = figure {
+                *first_move = !*first_move;
+            }
+        }
+
+        self.fields[row_to][col_to].figure = *figure;
         self.field_mut(from).figure = None;
     }
 
@@ -316,6 +329,7 @@ impl Chess {
             return;
         }
 
+        self.selection.unselect_field();
         let field = self.select_field(clicked);
 
         if let Some(figure) = field.figure {
