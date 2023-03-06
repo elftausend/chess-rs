@@ -1,6 +1,7 @@
-use std::io::Chain;
+mod valid_moves;
 
 use macroquad::prelude::*;
+use valid_moves::{is_move_valid, ValidMoves, bishop_moves, rook_moves};
 
 const SIZE: f32 = 60.;
 const X_DIST: f32 = 20.;
@@ -43,7 +44,7 @@ impl Figure {
                     if let Some(mv) = is_move_valid((row - 1, col), fields) {
                         moves.push(mv)
                     } else {
-                        return vec![]
+                        return vec![];
                     }
 
                     if *first_move {
@@ -85,38 +86,34 @@ impl Figure {
             .into_iter()
             .flatten()
             .collect(),
+            Figure::Bishop(_) => 
+            bishop_moves((row, col), fields)
+                .into_iter()
+                .collect(),
+            /*Figure::Bishop(_) => {
+                ValidMoves::new(row, col, |row, col, add| (row + add, col + add), fields)
+                    .into_iter().chain(ValidMoves::new(row, col, |row, col, add| (row - add, col - add), fields).into_iter())
+                    .chain(ValidMoves::new(row, col, |row, col, add| (row - add, col + add), fields).into_iter())
+                    .chain(ValidMoves::new(row, col, |row, col, add| (row + add, col - add), fields).into_iter())
+                    .collect::<Vec<(usize, usize)>>()
+            }*/
+            Figure::Rook(_) => rook_moves((row_col), fields)
             /*Figure::Rook(_) => (1..8)
-            .map_while(|add| is_move_valid((row, col + add), fields))
-            .chain((1..8).map_while(|add| is_move_valid((row, col - add), fields)))
-            .chain((1..8).map_while(|add| is_move_valid((row + add, col), fields)))
-            .chain((1..8).map_while(|add| is_move_valid((row - add, col), fields)))
-            .collect::<Vec<(usize, usize)>>(),*/
-            Figure::Rook(_) => (1..8)
                 .map_while(|add| is_move_valid((row, col + add), fields))
                 .chain((1..8).map_while(|add| is_move_valid((row, col - add), fields)))
                 .chain((1..8).map_while(|add| is_move_valid((row + add, col), fields)))
                 .chain((1..8).map_while(|add| is_move_valid((row - add, col), fields)))
-                .collect::<Vec<(usize, usize)>>(),
-            Figure::Bishop(_) => (1..8)
+                .collect::<Vec<(usize, usize)>>(),*/
+            /*Figure::Bishop(_) => (1..8)
                 .map_while(|add| is_move_valid((row + add, col + add), fields))
                 .chain((1..8).map_while(|sub| is_move_valid((row - sub, col - sub), fields)))
                 .chain((1..8).map_while(|add| is_move_valid((row - add, col + add), fields)))
                 .chain((1..8).map_while(|add| is_move_valid((row + add, col - add), fields)))
-                .collect::<Vec<(usize, usize)>>(),
+                .collect::<Vec<(usize, usize)>>(),*/
         }
     }
 }
 
-fn is_move_valid((row, col): (usize, usize), fields: &[[Field; 8]; 8]) -> Option<(usize, usize)> {
-    if row >= ROWS || col >= COLS {
-        return None;
-    }
-
-    match fields[row][col].figure {
-        Some(_) => None,
-        None => Some((row, col)),
-    }
-}
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Field {
@@ -169,7 +166,7 @@ impl Field {
                     SIZE / 2.,
                     COLORS[team as usize],
                 ),
-            }            
+            }
         }
     }
 }
@@ -190,14 +187,7 @@ impl Selection {
         if let Some((row, col)) = self.selected_field {
             let x = col as f32 * SIZE + X_DIST;
             let y = row as f32 * SIZE + Y_DIST;
-            draw_rectangle_lines(
-                x + 15.,
-                y + 15.,
-                SIZE / 2.,
-                SIZE / 2.,
-                6.,
-                DARKGREEN,
-            );
+            draw_rectangle_lines(x + 15., y + 15., SIZE / 2., SIZE / 2., 6., DARKGREEN);
         }
 
         for (row, col) in &self.moves {
@@ -207,7 +197,7 @@ impl Selection {
         }
     }
 
-    pub fn unselect_field(&mut self)  {
+    pub fn unselect_field(&mut self) {
         self.selected_field = None;
         self.moves.clear();
     }
@@ -255,7 +245,6 @@ impl Chess {
     }
 
     pub fn draw(&self) {
-        let mut white = true;
         draw_rectangle_lines(
             X_DIST - 7. / 2.,
             Y_DIST - 7. / 2.,
@@ -351,7 +340,7 @@ async fn main() {
             let field = chess.has_clicked_field(mouse_position());
             if let Some(clicked) = field {
                 chess.select_or_move(clicked);
-            } 
+            }
         }
 
         next_frame().await;
