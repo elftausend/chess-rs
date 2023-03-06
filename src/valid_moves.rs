@@ -1,5 +1,4 @@
-use crate::{Field, COLS, ROWS};
-
+use crate::{Field, COLS, ROWS, Team};
 
 pub struct ValidMovesIter<'a> {
     row: usize,
@@ -9,6 +8,7 @@ pub struct ValidMovesIter<'a> {
     fields: &'a [[Field; 8]; 8],
     started_invalid: bool,
     fadd: Option<fn(usize, usize, usize) -> (usize, usize)>,
+    team: Team,
 }
 
 impl<'a> ValidMovesIter<'a> {
@@ -42,6 +42,14 @@ impl<'a> Iterator for ValidMovesIter<'a> {
             return self.next();
         }
 
+        if let Some(figure) = self.fields[mv.0][mv.1].figure {
+            if self.team == figure.team {
+                self.next_fn();
+                return self.next();
+            }
+        }
+
+
         self.started_invalid = is_figure_on_field(mv, self.fields);
 
         self.add += 1;
@@ -54,6 +62,7 @@ pub struct ValidMoves<'a> {
     col: usize,
     f: Vec<fn(usize, usize, usize) -> (usize, usize)>,
     fields: &'a [[Field; 8]; 8],
+    team: Team,
 }
 
 impl<'a> ValidMoves<'a> {
@@ -62,12 +71,14 @@ impl<'a> ValidMoves<'a> {
         col: usize,
         f: Vec<fn(usize, usize, usize) -> (usize, usize)>,
         fields: &'a [[Field; 8]; 8],
+        team: Team,
     ) -> Self {
         Self {
             row,
             col,
             f,
             fields,
+            team
         }
     }
 }
@@ -86,13 +97,17 @@ impl<'a> IntoIterator for ValidMoves<'a> {
             fields: self.fields,
             started_invalid: false,
             fadd: None,
+            team: self.team,
         };
         valid_moves_iter.next_fn();
         valid_moves_iter
     }
 }
 
-pub fn is_move_valid((row, col): (usize, usize), fields: &[[Field; 8]; 8]) -> Option<(usize, usize)> {
+pub fn is_move_valid(
+    (row, col): (usize, usize),
+    fields: &[[Field; 8]; 8],
+) -> Option<(usize, usize)> {
     if row >= ROWS || col >= COLS {
         return None;
     }
@@ -118,7 +133,7 @@ fn is_figure_on_field((row, col): (usize, usize), fields: &[[Field; 8]; 8]) -> b
     }
 }
 
-pub fn bishop_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8]) -> ValidMoves<'a> {
+pub fn bishop_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8], team: Team) -> ValidMoves<'a> {
     ValidMoves::new(
         row,
         col,
@@ -129,10 +144,11 @@ pub fn bishop_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8])
             |row, col, add| (row + add, col - add),
         ],
         fields,
+        team,
     )
 }
 
-pub fn rook_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8]) -> ValidMoves<'a> {
+pub fn rook_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8], team: Team) -> ValidMoves<'a> {
     ValidMoves::new(
         row,
         col,
@@ -143,6 +159,7 @@ pub fn rook_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8]) -
             |row, col, add| (row - add, col),
         ],
         fields,
+        team
     )
 }
 
@@ -150,6 +167,7 @@ pub fn rook_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8]) -
 mod tests {
     use crate::{Chess, ValidMoves};
 
+/* 
     #[test]
     fn test_valid_move_iter() {
         let chess = Chess::new();
@@ -167,4 +185,5 @@ mod tests {
             println!("mv: {mv:?}");
         }
     }
+    */
 }

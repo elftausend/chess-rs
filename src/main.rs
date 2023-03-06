@@ -1,7 +1,8 @@
 mod valid_moves;
 
+use lazy_static::lazy_static;
 use macroquad::prelude::*;
-use valid_moves::{is_move_valid, ValidMoves, bishop_moves, rook_moves};
+use valid_moves::{bishop_moves, is_move_valid, rook_moves, ValidMoves};
 
 const SIZE: f32 = 60.;
 const X_DIST: f32 = 20.;
@@ -12,23 +13,37 @@ const COLS: usize = 8;
 
 const COLORS: [Color; 2] = [WHITE, BLACK];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
-enum Team {
+pub enum Team {
     White,
     Black,
 }
-
-struct MoveInfo {}
+impl ToString for Team {
+    fn to_string(&self) -> String {
+        match self {
+            Team::White => "white".to_string(),
+            Team::Black => "black".to_string(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
-enum Figure {
-    Pawn(Team, bool),
-    King(Team),
-    Queen(Team),
-    Knight(Team),
-    Rook(Team),
-    Bishop(Team),
+pub struct Figure {
+    figure: FigureType,
+    team: Team,
+    first_move: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u8)]
+enum FigureType {
+    Pawn,
+    King,
+    Queen,
+    Knight,
+    Rook,
+    Bishop,
 }
 
 impl Figure {
@@ -37,8 +52,8 @@ impl Figure {
         (row, col): (usize, usize),
         fields: &[[Field; 8]; 8],
     ) -> Vec<(usize, usize)> {
-        match self {
-            Figure::Pawn(team, first_move) => match team {
+        match self.figure {
+            FigureType::Pawn => match self.team {
                 Team::White => {
                     let mut moves = vec![];
                     if let Some(mv) = is_move_valid((row - 1, col), fields) {
@@ -47,7 +62,7 @@ impl Figure {
                         return vec![];
                     }
 
-                    if *first_move {
+                    if self.first_move {
                         if let Some(mv) = is_move_valid((row - 2, col), fields) {
                             moves.push(mv)
                         }
@@ -56,7 +71,7 @@ impl Figure {
                 }
                 Team::Black => {
                     let mut moves = vec![(row + 1, col)];
-                    if *first_move {
+                    if self.first_move {
                         if let Some(mv) = is_move_valid((row + 2, col), fields) {
                             moves.push(mv)
                         }
@@ -64,7 +79,7 @@ impl Figure {
                     moves
                 }
             },
-            Figure::King(_) => {
+            FigureType::King => {
                 vec![
                     (row + 1, col),
                     (row, col + 1),
@@ -72,8 +87,11 @@ impl Figure {
                     (row, col - 1),
                 ]
             }
-            Figure::Queen(_) => todo!(),
-            Figure::Knight(_) => [
+            FigureType::Queen => bishop_moves((row, col), fields, self.team)
+                .into_iter()
+                .chain(rook_moves((row, col), fields, self.team))
+                .collect(),
+            FigureType::Knight => [
                 is_move_valid((row + 2, col + 1), fields),
                 is_move_valid((row + 2, col - 1), fields),
                 is_move_valid((row - 2, col + 1), fields),
@@ -86,34 +104,11 @@ impl Figure {
             .into_iter()
             .flatten()
             .collect(),
-            Figure::Bishop(_) => 
-            bishop_moves((row, col), fields)
-                .into_iter()
-                .collect(),
-            /*Figure::Bishop(_) => {
-                ValidMoves::new(row, col, |row, col, add| (row + add, col + add), fields)
-                    .into_iter().chain(ValidMoves::new(row, col, |row, col, add| (row - add, col - add), fields).into_iter())
-                    .chain(ValidMoves::new(row, col, |row, col, add| (row - add, col + add), fields).into_iter())
-                    .chain(ValidMoves::new(row, col, |row, col, add| (row + add, col - add), fields).into_iter())
-                    .collect::<Vec<(usize, usize)>>()
-            }*/
-            Figure::Rook(_) => rook_moves((row_col), fields)
-            /*Figure::Rook(_) => (1..8)
-                .map_while(|add| is_move_valid((row, col + add), fields))
-                .chain((1..8).map_while(|add| is_move_valid((row, col - add), fields)))
-                .chain((1..8).map_while(|add| is_move_valid((row + add, col), fields)))
-                .chain((1..8).map_while(|add| is_move_valid((row - add, col), fields)))
-                .collect::<Vec<(usize, usize)>>(),*/
-            /*Figure::Bishop(_) => (1..8)
-                .map_while(|add| is_move_valid((row + add, col + add), fields))
-                .chain((1..8).map_while(|sub| is_move_valid((row - sub, col - sub), fields)))
-                .chain((1..8).map_while(|add| is_move_valid((row - add, col + add), fields)))
-                .chain((1..8).map_while(|add| is_move_valid((row + add, col - add), fields)))
-                .collect::<Vec<(usize, usize)>>(),*/
+            FigureType::Bishop => bishop_moves((row, col), fields, self.team).into_iter().collect(),
+            FigureType::Rook => rook_moves((row, col), fields, self.team).into_iter().collect(),
         }
     }
 }
-
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Field {
@@ -124,49 +119,21 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn draw(&self, field_color: Color) {
+
+    pub fn draw_sprite(&self, sprite: Texture2D) {
+        draw_texture(
+            sprite,
+            self.x - 3.,
+            self.y,
+            WHITE,
+        );
+    }
+
+    pub async fn draw(&self, field_color: Color, sprites: &[Texture2D; 12]) {
         draw_rectangle(self.x, self.y, SIZE, SIZE, field_color);
-
+        
         if let Some(figure) = self.figure {
-            match figure {
-                Figure::Pawn(team, _) => draw_rectangle(
-                    self.x + 15.,
-                    self.y + 15.,
-                    SIZE / 2.,
-                    SIZE / 2.,
-                    COLORS[team as usize],
-                ),
-                Figure::King(team) => match team {
-                    Team::White => todo!(),
-                    Team::Black => todo!(),
-                },
-                Figure::Queen(team) => match team {
-                    Team::White => todo!(),
-                    Team::Black => todo!(),
-                },
-                Figure::Knight(team) => draw_rectangle(
-                    self.x + 15.,
-                    self.y + 15.,
-                    SIZE / 2.,
-                    SIZE / 2.,
-                    COLORS[team as usize],
-                ),
-
-                Figure::Rook(team) => draw_rectangle(
-                    self.x + 15.,
-                    self.y + 15.,
-                    SIZE / 2.,
-                    SIZE / 2.,
-                    COLORS[team as usize],
-                ),
-                Figure::Bishop(team) => draw_rectangle(
-                    self.x + 15.,
-                    self.y + 15.,
-                    SIZE / 2.,
-                    SIZE / 2.,
-                    COLORS[team as usize],
-                ),
-            }
+            self.draw_sprite(sprites[figure.figure as usize + figure.team as usize * 6]);
         }
     }
 }
@@ -184,11 +151,11 @@ impl Selection {
         }
 
         // draw selection border
-        if let Some((row, col)) = self.selected_field {
+        /*if let Some((row, col)) = self.selected_field {
             let x = col as f32 * SIZE + X_DIST;
             let y = row as f32 * SIZE + Y_DIST;
             draw_rectangle_lines(x + 15., y + 15., SIZE / 2., SIZE / 2., 6., DARKGREEN);
-        }
+        }*/
 
         for (row, col) in &self.moves {
             let x = *col as f32 * SIZE + X_DIST;
@@ -206,11 +173,12 @@ impl Selection {
 #[derive(Debug)]
 pub struct Chess {
     fields: [[Field; COLS]; ROWS],
+    sprites: [Texture2D; 12],
     selection: Selection,
 }
 
 impl Chess {
-    pub fn new() -> Chess {
+    pub fn new(sprites: [Texture2D; 12]) -> Chess {
         let mut fields = [[Field::default(); COLS]; ROWS];
 
         for row in 0..ROWS {
@@ -226,25 +194,29 @@ impl Chess {
         }
 
         let field = &mut fields[3][3];
-        field.figure = Some(Figure::Bishop(Team::White));
+        field.figure = Some(Figure { figure: FigureType::Bishop, team: Team::White, first_move: true });
+        
+        let field = &mut fields[4][4];
+        field.figure = Some(Figure { figure: FigureType::Queen, team: Team::Black, first_move: true });
 
         for col in 0..COLS {
             let field = &mut fields[1][col];
-            field.figure = Some(Figure::Pawn(Team::Black, true));
+            field.figure = Some(Figure { figure: FigureType::Pawn, team: Team::Black, first_move: true })
         }
 
         for col in 0..COLS {
             let field = &mut fields[6][col];
-            field.figure = Some(Figure::Pawn(Team::White, true));
+            field.figure = Some(Figure { figure: FigureType::Pawn, team: Team::White, first_move: true })
         }
 
         Chess {
             fields,
             selection: Default::default(),
+            sprites
         }
     }
 
-    pub fn draw(&self) {
+    pub async fn draw(&self) {
         draw_rectangle_lines(
             X_DIST - 7. / 2.,
             Y_DIST - 7. / 2.,
@@ -263,7 +235,7 @@ impl Chess {
                     Color::new(71. / 255., 135. / 255., 48. / 255., 1.)
                 };
 
-                field.draw(field_color);
+                field.draw(field_color, &self.sprites).await;
             }
         }
 
@@ -300,9 +272,7 @@ impl Chess {
     pub fn move_figure(&mut self, from: (usize, usize), (row_to, col_to): (usize, usize)) {
         let mut figure = &mut self.field_mut(from).figure;
         if let Some(figure) = &mut figure {
-            if let Figure::Pawn(_, first_move) = figure {
-                *first_move = !*first_move;
-            }
+            figure.first_move = false;
         }
 
         self.fields[row_to][col_to].figure = *figure;
@@ -329,12 +299,28 @@ impl Chess {
 
 #[macroquad::main("Chess")]
 async fn main() {
-    let mut chess = Chess::new();
+    
+    let sprites = [
+        Texture2D::from_image(&load_image("./Figures/whitePawn.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/whiteKing.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/whiteQueen.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/whiteKnight.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/whiteRook.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/whiteBishop.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/blackPawn.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/blackKing.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/blackQueen.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/blackKnight.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/blackRook.png").await.unwrap()),
+        Texture2D::from_image(&load_image("./Figures/blackBishop.png").await.unwrap()),
+    ];
+
+    let mut chess = Chess::new(sprites);
 
     loop {
         clear_background(WHITE);
 
-        chess.draw();
+        chess.draw().await;
 
         if is_mouse_button_pressed(MouseButton::Left) {
             let field = chess.has_clicked_field(mouse_position());
