@@ -1,4 +1,4 @@
-use crate::{Field, COLS, ROWS, Team};
+use crate::{Field, Team, COLS, ROWS};
 
 pub struct ValidMovesIter<'a> {
     row: usize,
@@ -49,7 +49,6 @@ impl<'a> Iterator for ValidMovesIter<'a> {
             }
         }
 
-
         self.started_invalid = is_figure_on_field(mv, self.fields);
 
         self.add += 1;
@@ -78,7 +77,7 @@ impl<'a> ValidMoves<'a> {
             col,
             f,
             fields,
-            team
+            team,
         }
     }
 }
@@ -107,13 +106,20 @@ impl<'a> IntoIterator for ValidMoves<'a> {
 pub fn is_move_valid(
     (row, col): (usize, usize),
     fields: &[[Field; 8]; 8],
+    team: Team,
 ) -> Option<(usize, usize)> {
     if row >= ROWS || col >= COLS {
         return None;
     }
 
     match fields[row][col].figure {
-        Some(_) => None,
+        Some(figure) => {
+            if team == figure.team {
+                None
+            } else {
+                Some((row, col))
+            }
+        }
         None => Some((row, col)),
     }
 }
@@ -133,7 +139,11 @@ fn is_figure_on_field((row, col): (usize, usize), fields: &[[Field; 8]; 8]) -> b
     }
 }
 
-pub fn bishop_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8], team: Team) -> ValidMoves<'a> {
+pub fn bishop_moves<'a>(
+    (row, col): (usize, usize),
+    fields: &'a [[Field; 8]; 8],
+    team: Team,
+) -> ValidMoves<'a> {
     ValidMoves::new(
         row,
         col,
@@ -148,7 +158,11 @@ pub fn bishop_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8],
     )
 }
 
-pub fn rook_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8], team: Team) -> ValidMoves<'a> {
+pub fn rook_moves<'a>(
+    (row, col): (usize, usize),
+    fields: &'a [[Field; 8]; 8],
+    team: Team,
+) -> ValidMoves<'a> {
     ValidMoves::new(
         row,
         col,
@@ -159,15 +173,58 @@ pub fn rook_moves<'a>((row, col): (usize, usize), fields: &'a [[Field; 8]; 8], t
             |row, col, add| (row - add, col),
         ],
         fields,
-        team
+        team,
     )
+}
+
+pub fn pawn_moves(
+    (row, col): (usize, usize),
+    fields: &[[Field; 8]; 8],
+    team: Team,
+    first_move: bool,
+) -> Vec<(usize, usize)> {
+    let (row, first_move_row) = match team {
+        Team::White => (row - 1, row - 2),
+        Team::Black => (row + 1, row + 2),
+    };
+
+    let mut moves = vec![];
+
+    if col != 0 {
+
+        if let Some(figure) = fields[row][col-1].figure {
+            if team != figure.team {
+                moves.push((row, col-1));
+            }
+        }   
+    }
+    if col+1 < COLS {
+        if let Some(figure) = fields[row][col+1].figure {
+            if team != figure.team {
+                moves.push((row, col+1));
+            }
+        }
+    }
+    
+    if let Some(mv) = is_move_valid((row, col), fields, !team) {
+        moves.push(mv)
+    } else {
+        return moves;
+    }
+
+    if first_move {
+        if let Some(mv) = is_move_valid((first_move_row, col), fields, !team) {
+            moves.push(mv)
+        }
+    }
+    moves
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Chess, ValidMoves};
+    use crate::{Chess};
 
-/* 
+    /*
     #[test]
     fn test_valid_move_iter() {
         let chess = Chess::new();
