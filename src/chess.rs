@@ -55,7 +55,7 @@ impl Chess {
 
         spawn_figure(&mut fields, 3, FigureType::Queen);
         spawn_figure(&mut fields, 4, FigureType::King);
-        
+
 
         for col in 0..COLS {
             let field = &mut fields[1][col];
@@ -81,7 +81,8 @@ impl Chess {
         }
     }
 
-    pub async fn draw(&self) {
+    pub fn draw(&self) {
+
         draw_rectangle_lines(
             X_DIST - 7. / 2.,
             Y_DIST - 7. / 2.,
@@ -100,10 +101,9 @@ impl Chess {
                     Color::new(71. / 255., 135. / 255., 48. / 255., 1.)
                 };
 
-                field.draw(field_color, &self.sprites).await;
+                field.draw(field_color, &self.sprites);
             }
         }
-
         self.selection.draw();
     }
 

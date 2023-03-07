@@ -31,9 +31,7 @@ impl<'a> Iterator for ValidMovesIter<'a> {
             self.next_fn();
         }
 
-        if self.fadd.is_none() {
-            return None;
-        }
+        self.fadd?;
 
         let mv = (self.fadd.as_ref().unwrap())(self.row, self.col, self.add);
 
@@ -124,26 +122,21 @@ pub fn is_move_valid(
     }
 }
 
+#[inline]
 fn is_out_of_bounds((row, col): (usize, usize)) -> bool {
-    if row >= ROWS || col >= COLS {
-        true
-    } else {
-        false
-    }
+    row >= ROWS || col >= COLS
 }
 
+#[inline]
 fn is_figure_on_field((row, col): (usize, usize), fields: &[[Field; 8]; 8]) -> bool {
-    match fields[row][col].figure {
-        Some(_) => true,
-        None => false,
-    }
+    fields[row][col].figure.is_some()
 }
 
 pub fn bishop_moves<'a>(
     (row, col): (usize, usize),
     fields: &'a [[Field; 8]; 8],
     team: Team,
-) -> ValidMoves<'a> {
+) -> ValidMoves<'_> {
     ValidMoves::new(
         row,
         col,
@@ -162,7 +155,7 @@ pub fn rook_moves<'a>(
     (row, col): (usize, usize),
     fields: &'a [[Field; 8]; 8],
     team: Team,
-) -> ValidMoves<'a> {
+) -> ValidMoves<'_> {
     ValidMoves::new(
         row,
         col,
@@ -213,16 +206,20 @@ pub fn pawn_moves(
     }
 
     if first_move {
-        if let Some(mv) = is_move_valid((first_move_row, col), fields, !team) {
-            moves.push(mv)
+        let mv = (first_move_row, col);
+        if !is_out_of_bounds(mv) && !is_figure_on_field(mv, fields) {
+            moves.push(mv);
         }
+        /*if let Some(mv) = is_move_valid((first_move_row, col), fields, team) {
+            moves.push(mv)
+        }*/
     }
     moves
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Chess};
+    
 
     /*
     #[test]
