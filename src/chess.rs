@@ -141,7 +141,10 @@ impl Chess {
         self.field_mut(from).figure = None;
     }
 
-    pub fn tried_rochade(&self, clicked: (usize, usize)) -> Option<((usize, usize), (usize, usize))> {
+    pub fn tried_rochade(
+        &self,
+        clicked: (usize, usize),
+    ) -> Option<((usize, usize), (usize, usize))> {
         let Some(clicked_figure) = self.field(clicked).figure else {
             return None;
         };
@@ -166,7 +169,10 @@ impl Chess {
         }
     }
 
-    pub fn is_rochade_valid(&self, (previous, clicked): ((usize, usize), (usize, usize))) -> bool {
+    pub fn is_rochade_valid(
+        &self,
+        (previous, clicked): ((usize, usize), (usize, usize)),
+    ) -> Option<bool> {
         let dist = previous.1 as i32 - clicked.1 as i32;
 
         for mut modify in 1..dist.abs() {
@@ -176,11 +182,11 @@ impl Chess {
 
             let next_col = (previous.1 as i32 + modify) as usize;
             if self.field((previous.0, next_col)).figure.is_some() {
-                return false;
+                return None;
             }
         }
 
-        true
+        Some(false)
     }
 
     pub fn select_or_move(&mut self, clicked: (usize, usize)) {
@@ -191,10 +197,7 @@ impl Chess {
         }
 
         if let Some(figures) = self.tried_rochade(clicked) {
-            println!("tried rochade");
-            if self.is_rochade_valid(figures) {
-
-            }
+            if self.is_rochade_valid(figures).is_some() {}
             self.selection.unselect_field();
             return;
         }
