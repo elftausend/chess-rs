@@ -4,11 +4,14 @@ use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE
 
 #[derive(Debug)]
 pub struct Chess {
-    fields: [[Field; COLS]; ROWS],
-    sprites: [Texture2D; 12],
-    selection: Selection,
-    player: Team,
+    pub fields: [[Field; COLS]; ROWS],
+    pub sprites: [Texture2D; 12],
+    pub selection: Selection,
+    pub player: Team,
 }
+
+unsafe impl Send for Chess {}
+unsafe impl Sync for Chess {}
 
 pub fn spawn_figure(fields: &mut [[Field; COLS]; ROWS], col: usize, figure_type: FigureType) {
     let black_field = &mut fields[0][col];
@@ -188,10 +191,10 @@ impl Chess {
         }
 
         if let Some(figures) = self.tried_rochade(clicked) {
-            if self.is_rochade_valid(figures) {
-                
-            }
             println!("tried rochade");
+            if self.is_rochade_valid(figures) {
+
+            }
             self.selection.unselect_field();
             return;
         }
