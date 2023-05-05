@@ -13,6 +13,8 @@ inherits = "release"
 debug = true
 
 [dependencies]
-macroquad = { version="0.3.25", default-features=false }
+#macroquad = { version="0.3.25", default-features=false }
+#macroquad = { path = "../forks/macroquad", default-features=false }
+macroquad = { git = "https://github.com/elftausend/macroquad", default-features=false }
 once_cell = "1.17.1"
 tokio = { version = "1.28.0", features = ["full"] }

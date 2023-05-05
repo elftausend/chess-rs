@@ -8,7 +8,6 @@ mod selection;
 pub use field::*;
 pub use figure::*;
 use macroquad::prelude::*;
-use once_cell::sync::Lazy;
 pub use selection::*;
 use tokio::runtime::Runtime;
 
@@ -40,7 +39,7 @@ pub async fn sprites() -> [Texture2D; 12] {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
-pub struct ChessCreationWrapper(*mut *mut Chess);
+pub struct ChessCreationWrapper(pub *mut *mut Chess);
 
 unsafe impl Send for ChessCreationWrapper {}
 unsafe impl Sync for ChessCreationWrapper {}
@@ -51,7 +50,8 @@ pub extern "C" fn chess_create(chess: ChessCreationWrapper) {
         tokio::task::spawn(async move {
             let chess = chess;
             unsafe {
-                *chess.0 = Box::into_raw(Box::new(Chess::new(sprites().await)));
+                *chess.0 = Box::into_raw(Box::new(Chess::new(None)));
+                // **chess.0 = Chess::new(None);
             }
         });
     });
@@ -59,32 +59,36 @@ pub extern "C" fn chess_create(chess: ChessCreationWrapper) {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
-pub struct ChessWrapper(*mut Chess);
+pub struct ChessWrapper(pub *mut Chess);
 
 unsafe impl Send for ChessWrapper {}
 unsafe impl Sync for ChessWrapper {}
 
 #[no_mangle]
 pub extern "C" fn chess_run(chess: ChessWrapper) {
-    Runtime::new()
-        .unwrap()
-        .block_on(tokio::task::spawn(async move {
-            let chess = chess;
+    Runtime::new().unwrap().block_on(async {
+        //tokio::task::spawn(async move {
+            macroquad::Window::from_config(Conf::default(), async move {
+                let chess = chess;
 
-            // let chess = unsafe {&mut *chess.0};
-            loop {
-                unsafe { &mut *chess.0 }.draw();
+                unsafe { &mut *chess.0 }.sprites = Some(sprites().await);
+                
+                // let chess = unsafe {&mut *chess.0};
+                loop {
+                    unsafe { &mut *chess.0 }.draw();
 
-                if is_mouse_button_pressed(MouseButton::Left) {
-                    let field = unsafe { &mut *chess.0 }.has_clicked_field(mouse_position());
-                    if let Some(clicked) = field {
-                        unsafe { &mut *chess.0 }.select_or_move(clicked)
+                    if is_mouse_button_pressed(MouseButton::Left) {
+                        let field = unsafe { &mut *chess.0 }.has_clicked_field(mouse_position());
+                        if let Some(clicked) = field {
+                            unsafe { &mut *chess.0 }.select_or_move(clicked)
+                        }
                     }
-                }
 
-                next_frame().await;
-            }
-        })).unwrap();
+                    next_frame().await;
+                }
+            });
+        //})
+    });
 }
 
 #[no_mangle]
@@ -108,4 +112,22 @@ pub extern "C" fn chess_free(chess: *mut Chess) {
     unsafe {
         drop(Box::from_raw(chess));
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ptr::null_mut;
+
+    use crate::{chess_create, chess_run, Chess, ChessCreationWrapper, ChessWrapper};
+
+    #[test]
+    fn test_raw_lib() {
+        let mut chess: *mut Chess = null_mut();
+        chess_create(ChessCreationWrapper(&mut chess));
+
+        chess_run(ChessWrapper(chess));
+        loop {
+             
+        }
+    }
 }

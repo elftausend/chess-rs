@@ -3,7 +3,7 @@ use macroquad::prelude::*;
 
 #[macroquad::main("Chess")]
 async fn main() {
-    let mut chess: Chess = Chess::new(sprites().await);
+    let mut chess: Chess = Chess::new(Some(sprites().await));
 
     loop {
         clear_background(DARKGRAY);

@@ -5,7 +5,7 @@ use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE
 #[derive(Debug)]
 pub struct Chess {
     pub fields: [[Field; COLS]; ROWS],
-    pub sprites: [Texture2D; 12],
+    pub sprites: Option<[Texture2D; 12]>,
     pub selection: Selection,
     pub player: Team,
 }
@@ -30,7 +30,7 @@ pub fn spawn_figure(fields: &mut [[Field; COLS]; ROWS], col: usize, figure_type:
 }
 
 impl Chess {
-    pub fn new(sprites: [Texture2D; 12]) -> Chess {
+    pub fn new(sprites: Option<[Texture2D; 12]>) -> Chess {
         let mut fields = [[Field::default(); COLS]; ROWS];
 
         for row in 0..ROWS {
@@ -100,7 +100,10 @@ impl Chess {
                     Color::new(71. / 255., 135. / 255., 48. / 255., 1.)
                 };
 
-                field.draw(field_color, &self.sprites);
+                field.draw(
+                    field_color,
+                    &self.sprites.expect("Sprites should be set at this moment"),
+                );
             }
         }
         self.selection.draw();
