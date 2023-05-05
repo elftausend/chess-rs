@@ -5,7 +5,7 @@ use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE
 #[derive(Debug)]
 pub struct Chess {
     pub fields: [[Field; COLS]; ROWS],
-    pub sprites: [Texture2D; 12],
+    pub sprites: Option<[Texture2D; 12]>,
     pub selection: Selection,
     pub player: Team,
 }
@@ -30,7 +30,7 @@ pub fn spawn_figure(fields: &mut [[Field; COLS]; ROWS], col: usize, figure_type:
 }
 
 impl Chess {
-    pub fn new(sprites: [Texture2D; 12]) -> Chess {
+    pub fn new(sprites: Option<[Texture2D; 12]>) -> Chess {
         let mut fields = [[Field::default(); COLS]; ROWS];
 
         for row in 0..ROWS {
@@ -100,7 +100,10 @@ impl Chess {
                     Color::new(71. / 255., 135. / 255., 48. / 255., 1.)
                 };
 
-                field.draw(field_color, &self.sprites);
+                field.draw(
+                    field_color,
+                    &self.sprites.expect("Sprites should be set at this moment"),
+                );
             }
         }
         self.selection.draw();
@@ -141,7 +144,10 @@ impl Chess {
         self.field_mut(from).figure = None;
     }
 
-    pub fn tried_rochade(&self, clicked: (usize, usize)) -> Option<((usize, usize), (usize, usize))> {
+    pub fn tried_rochade(
+        &self,
+        clicked: (usize, usize),
+    ) -> Option<((usize, usize), (usize, usize))> {
         let Some(clicked_figure) = self.field(clicked).figure else {
             return None;
         };
@@ -166,7 +172,10 @@ impl Chess {
         }
     }
 
-    pub fn is_rochade_valid(&self, (previous, clicked): ((usize, usize), (usize, usize))) -> bool {
+    pub fn is_rochade_valid(
+        &self,
+        (previous, clicked): ((usize, usize), (usize, usize)),
+    ) -> Option<bool> {
         let dist = previous.1 as i32 - clicked.1 as i32;
 
         for mut modify in 1..dist.abs() {
@@ -176,11 +185,11 @@ impl Chess {
 
             let next_col = (previous.1 as i32 + modify) as usize;
             if self.field((previous.0, next_col)).figure.is_some() {
-                return false;
+                return None;
             }
         }
 
-        true
+        Some(false)
     }
 
     pub fn select_or_move(&mut self, clicked: (usize, usize)) {
@@ -191,10 +200,7 @@ impl Chess {
         }
 
         if let Some(figures) = self.tried_rochade(clicked) {
-            println!("tried rochade");
-            if self.is_rochade_valid(figures) {
-
-            }
+            if self.is_rochade_valid(figures).is_some() {}
             self.selection.unselect_field();
             return;
         }

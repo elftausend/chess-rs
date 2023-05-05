@@ -1,4 +1,4 @@
-use macroquad::{shapes::draw_circle, prelude::YELLOW};
+use macroquad::{prelude::YELLOW, shapes::draw_circle};
 
 use crate::{SIZE, X_DIST, Y_DIST};
 
