@@ -1,12 +1,11 @@
-mod valid_moves;
-mod figure;
 mod chess;
+mod figure;
+mod valid_moves;
 use chess::Chess;
 mod field;
 
 pub use field::*;
 pub use figure::*;
-
 
 use macroquad::prelude::*;
 

@@ -1,7 +1,6 @@
 use macroquad::prelude::*;
 
-use crate::{Selection, Field, COLS, ROWS, SIZE, X_DIST, Y_DIST, figure::Figure, FigureType, Team};
-
+use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE, X_DIST, Y_DIST};
 
 #[derive(Debug)]
 pub struct Chess {
@@ -25,7 +24,6 @@ pub fn spawn_figure(fields: &mut [[Field; COLS]; ROWS], col: usize, figure_type:
         team: Team::White,
         first_move: true,
     });
-
 }
 
 impl Chess {
@@ -45,17 +43,16 @@ impl Chess {
         }
 
         spawn_figure(&mut fields, 0, FigureType::Rook);
-        spawn_figure(&mut fields, ROWS-1, FigureType::Rook);
+        spawn_figure(&mut fields, ROWS - 1, FigureType::Rook);
 
         spawn_figure(&mut fields, 1, FigureType::Knight);
-        spawn_figure(&mut fields, ROWS-2, FigureType::Knight);
+        spawn_figure(&mut fields, ROWS - 2, FigureType::Knight);
 
         spawn_figure(&mut fields, 2, FigureType::Bishop);
-        spawn_figure(&mut fields, ROWS-3, FigureType::Bishop);
+        spawn_figure(&mut fields, ROWS - 3, FigureType::Bishop);
 
         spawn_figure(&mut fields, 3, FigureType::Queen);
         spawn_figure(&mut fields, 4, FigureType::King);
-
 
         for col in 0..COLS {
             let field = &mut fields[1][col];
@@ -77,12 +74,11 @@ impl Chess {
             fields,
             selection: Default::default(),
             sprites,
-            player: Team::White
+            player: Team::White,
         }
     }
 
     pub fn draw(&self) {
-
         draw_rectangle_lines(
             X_DIST - 7. / 2.,
             Y_DIST - 7. / 2.,
@@ -142,9 +138,60 @@ impl Chess {
         self.field_mut(from).figure = None;
     }
 
+    pub fn tried_rochade(&self, clicked: (usize, usize)) -> Option<((usize, usize), (usize, usize))> {
+        let Some(clicked_figure) = self.field(clicked).figure else {
+            return None;
+        };
+
+        let Some(previous) = self.field(self.selection.selected_field?).figure else {
+            return None;
+        };
+
+        if !clicked_figure.first_move || !previous.first_move {
+            return None;
+        }
+
+        if clicked_figure.team != previous.team {
+            return None;
+        }
+
+        match (clicked_figure.figure, previous.figure) {
+            (FigureType::King, FigureType::Rook) | (FigureType::Rook, FigureType::King) => {
+                return Some((self.selection.selected_field?, clicked))
+            }
+            (_, _) => return None,
+        }
+    }
+
+    pub fn is_rochade_valid(&self, (previous, clicked): ((usize, usize), (usize, usize))) -> bool {
+        let dist = previous.1 as i32 - clicked.1 as i32;
+
+        for mut modify in 1..dist.abs() {
+            if dist.is_positive() {
+                modify = -modify;
+            }
+
+            let next_col = (previous.1 as i32 + modify) as usize;
+            if self.field((previous.0, next_col)).figure.is_some() {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn select_or_move(&mut self, clicked: (usize, usize)) {
         // unselect field if same field was clicked
         if self.selection.selected_field == Some(clicked) {
+            self.selection.unselect_field();
+            return;
+        }
+
+        if let Some(figures) = self.tried_rochade(clicked) {
+            if self.is_rochade_valid(figures) {
+                
+            }
+            println!("tried rochade");
             self.selection.unselect_field();
             return;
         }
@@ -164,11 +211,11 @@ impl Chess {
         if let Some(figure) = field.figure {
             // only select figures of the current player
             if figure.team != self.player {
-                return
+                return;
             }
             self.selection.moves = figure.valid_moves(field.idxs, &self.fields);
         }
 
-        self.select_field(clicked); 
+        self.select_field(clicked);
     }
 }

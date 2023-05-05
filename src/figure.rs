@@ -1,6 +1,9 @@
 use std::ops::Not;
 
-use crate::{valid_moves::{pawn_moves, bishop_moves, rook_moves, is_move_valid}, Field};
+use crate::{
+    valid_moves::{bishop_moves, is_move_valid, pawn_moves, rook_moves},
+    Field,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Figure {
@@ -17,21 +20,19 @@ impl Figure {
     ) -> Vec<(usize, usize)> {
         match self.figure {
             FigureType::Pawn => pawn_moves((row, col), fields, self.team, self.first_move),
-            FigureType::King => {
-                vec![
-                    is_move_valid((row + 1, col), fields, self.team),
-                    is_move_valid((row + 1, col - 1), fields, self.team),
-                    is_move_valid((row + 1, col + 1), fields, self.team),
-                    is_move_valid((row, col + 1), fields, self.team),
-                    is_move_valid((row - 1, col), fields, self.team),
-                    is_move_valid((row - 1, col + 1), fields, self.team),
-                    is_move_valid((row - 1, col - 1), fields, self.team),
-                    is_move_valid((row, col - 1), fields, self.team),
-                ]
-                .into_iter()
-                .flatten()
-                .collect()
-            }
+            FigureType::King => vec![
+                is_move_valid((row + 1, col), fields, self.team),
+                is_move_valid((row + 1, col - 1), fields, self.team),
+                is_move_valid((row + 1, col + 1), fields, self.team),
+                is_move_valid((row, col + 1), fields, self.team),
+                is_move_valid((row - 1, col), fields, self.team),
+                is_move_valid((row - 1, col + 1), fields, self.team),
+                is_move_valid((row - 1, col - 1), fields, self.team),
+                is_move_valid((row, col - 1), fields, self.team),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
             FigureType::Queen => bishop_moves((row, col), fields, self.team)
                 .into_iter()
                 .chain(rook_moves((row, col), fields, self.team))
@@ -58,7 +59,6 @@ impl Figure {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]

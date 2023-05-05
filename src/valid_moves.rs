@@ -122,6 +122,20 @@ pub fn is_move_valid(
     }
 }
 
+pub fn is_pawn_move_valid(
+    (row, col): (usize, usize),
+    fields: &[[Field; 8]; 8],
+) -> Option<(usize, usize)> {
+    if row >= ROWS || col >= COLS {
+        return None;
+    }
+
+    match fields[row][col].figure {
+        Some(_) => None,
+        None => Some((row, col)),
+    }
+}
+
 #[inline]
 fn is_out_of_bounds((row, col): (usize, usize)) -> bool {
     row >= ROWS || col >= COLS
@@ -184,22 +198,21 @@ pub fn pawn_moves(
     let mut moves = vec![];
 
     if col != 0 {
-
-        if let Some(figure) = fields[row][col-1].figure {
+        if let Some(figure) = fields[row][col - 1].figure {
             if team != figure.team {
-                moves.push((row, col-1));
-            }
-        }   
-    }
-    if col+1 < COLS {
-        if let Some(figure) = fields[row][col+1].figure {
-            if team != figure.team {
-                moves.push((row, col+1));
+                moves.push((row, col - 1));
             }
         }
     }
-    
-    if let Some(mv) = is_move_valid((row, col), fields, !team) {
+    if col + 1 < COLS {
+        if let Some(figure) = fields[row][col + 1].figure {
+            if team != figure.team {
+                moves.push((row, col + 1));
+            }
+        }
+    }
+
+    if let Some(mv) = is_pawn_move_valid((row, col), fields) {
         moves.push(mv)
     } else {
         return moves;
@@ -210,16 +223,15 @@ pub fn pawn_moves(
         if !is_out_of_bounds(mv) && !is_figure_on_field(mv, fields) {
             moves.push(mv);
         }
-        /*if let Some(mv) = is_move_valid((first_move_row, col), fields, team) {
+        if let Some(mv) = is_pawn_move_valid((first_move_row, col), fields) {
             moves.push(mv)
-        }*/
+        }
     }
     moves
 }
 
 #[cfg(test)]
 mod tests {
-    
 
     /*
     #[test]
