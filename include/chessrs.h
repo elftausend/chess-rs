@@ -9,7 +9,7 @@ void chess_create(void **);
 
 void chess_run(void *);
 
-void chess_move(char start_x, char start_y, char dest_x, char dest_y);
+void chess_move(void *, char start_x, char start_y, char dest_x, char dest_y);
 
 void free_chess(void *);
 
