@@ -8,8 +8,13 @@ edition = "2021"
 [lib]
 crate-type = ["rlib", "dylib"]
 
-[profile.release-with-debug]
-inherits = "release"
+#[profile.release-with-debug]
+#inherits = "release"
+#debug = true
+
+[profile.dev]
+# strip = true  # Automatically strip symbols from the binary.
+opt-level = "z"  # Optimize for size.
 debug = true
 
 [dependencies]

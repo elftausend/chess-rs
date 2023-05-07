@@ -46,15 +46,9 @@ unsafe impl Sync for ChessCreationWrapper {}
 
 #[no_mangle]
 pub extern "C" fn chess_create(chess: ChessCreationWrapper) {
-    Runtime::new().unwrap().block_on(async {
-        tokio::task::spawn(async move {
-            let chess = chess;
-            unsafe {
-                *chess.0 = Box::into_raw(Box::new(Chess::new(None)));
-                // **chess.0 = Chess::new(None);
-            }
-        });
-    });
+    unsafe {
+        *chess.0 = Box::into_raw(Box::new(Chess::new(None)));
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
