@@ -60,8 +60,13 @@ unsafe impl Send for ChessWrapper {}
 unsafe impl Sync for ChessWrapper {}
 
 #[no_mangle]
-pub extern "C" fn chess_get_current_team(chess: ChessWrapper) -> i32 {
-    unsafe {(*chess.0).player as i32}
+pub extern "C" fn chess_get_current_team(chess: ChessWrapper) -> Team {
+    unsafe {(*chess.0).player}
+}
+
+#[no_mangle]
+pub extern "C" fn chess_set_current_team(chess: ChessWrapper, team: Team) {
+    unsafe {(*chess.0).player = team}
 }
 
 #[no_mangle]
