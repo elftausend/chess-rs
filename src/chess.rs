@@ -2,12 +2,22 @@ use macroquad::prelude::*;
 
 use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE, X_DIST, Y_DIST};
 
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct Move {
+    start_row: usize,
+    start_col: usize,
+    end_row: usize,
+    end_col: usize,    
+}
+
 #[derive(Debug)]
 pub struct Chess {
     pub fields: [[Field; COLS]; ROWS],
     pub sprites: Option<[Texture2D; 12]>,
     pub selection: Selection,
     pub player: Team,
+    pub latest_move: Option<Move>
 }
 
 unsafe impl Send for Chess {}
@@ -78,6 +88,7 @@ impl Chess {
             selection: Default::default(),
             sprites,
             player: Team::White,
+            latest_move: None
         }
     }
 
@@ -135,6 +146,13 @@ impl Chess {
     }
 
     pub fn move_figure(&mut self, from: (usize, usize), (row_to, col_to): (usize, usize)) {
+        self.latest_move = Some(Move {
+            start_row: from.0,
+            start_col: from.1,
+            end_row: row_to,
+            end_col: col_to,
+        });
+
         let mut figure = &mut self.field_mut(from).figure;
         if let Some(figure) = &mut figure {
             figure.first_move = false;

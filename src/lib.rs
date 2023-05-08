@@ -5,6 +5,7 @@ pub use chess::Chess;
 mod field;
 mod selection;
 
+use chess::Move;
 pub use field::*;
 pub use figure::*;
 use macroquad::prelude::*;
@@ -57,6 +58,16 @@ pub struct ChessWrapper(pub *mut Chess);
 
 unsafe impl Send for ChessWrapper {}
 unsafe impl Sync for ChessWrapper {}
+
+#[no_mangle]
+pub extern "C" fn chess_get_current_team(chess: ChessWrapper) -> i32 {
+    unsafe {(*chess.0).player as i32}
+}
+
+#[no_mangle]
+pub extern "C" fn chess_get_latest_move(chess: ChessWrapper) -> Move {
+    unsafe {(*chess.0).latest_move.expect("No move is available.")}
+}
 
 #[no_mangle]
 pub extern "C" fn chess_run(chess: ChessWrapper) {

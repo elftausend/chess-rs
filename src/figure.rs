@@ -61,10 +61,10 @@ impl Figure {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u8)]
+#[repr(C)]
 pub enum Team {
-    White,
-    Black,
+    White = 0,
+    Black = 1,
 }
 
 impl Not for Team {
