@@ -9,13 +9,13 @@ namespace chessrs {
     enum Team {white=0,black=1};
 
     struct Move {
-        char start_x, start_y, dest_x, dest_y;
+        size_t start_y, start_x, dest_y, dest_x;
     };
 
     void chess_create(void **);
     void chess_run(void *);
-    void chess_move(void *, char start_x, char start_y, char dest_x, char dest_y);
-    void free_chess(void *);
+    void chess_move(void *, size_t start_y, size_t start_x, size_t dest_y, size_t dest_x);
+    void chess_free(void *);
     Team chess_get_current_team(void*);
     void chess_set_current_team(void*, Team);
     Move chess_get_latest_move(void*);
