@@ -156,7 +156,7 @@ pub fn bishop_moves<'a>(
         col,
         vec![
             |row, col, add| (row + add, col + add),
-            |row, col, add| (row - add, col - add),
+            |row, col, add| (row - add, col.overflowing_sub(add).0),
             |row, col, add| (row - add, col + add),
             |row, col, add| (row + add, col - add),
         ],

@@ -2,13 +2,13 @@ use macroquad::prelude::*;
 
 use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE, X_DIST, Y_DIST};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Move {
-    start_row: usize,
-    start_col: usize,
-    end_row: usize,
-    end_col: usize,    
+    pub start_row: usize,
+    pub start_col: usize,
+    pub end_row: usize,
+    pub end_col: usize,    
 }
 
 #[derive(Debug)]
