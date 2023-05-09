@@ -5,7 +5,7 @@ pub use chess::Chess;
 mod field;
 mod selection;
 
-use chess::Move;
+pub use chess::Move;
 pub use field::*;
 pub use figure::*;
 use macroquad::prelude::*;
@@ -38,17 +38,10 @@ pub async fn sprites() -> [Texture2D; 12] {
     ]
 }
 
-#[derive(Debug, Clone, Copy)]
-#[repr(C)]
-pub struct ChessCreationWrapper(pub *mut *mut Chess);
-
-unsafe impl Send for ChessCreationWrapper {}
-unsafe impl Sync for ChessCreationWrapper {}
-
 #[no_mangle]
-pub extern "C" fn chess_create(chess: ChessCreationWrapper) {
+pub extern "C" fn chess_create(chess: *mut *mut Chess) {
     unsafe {
-        *chess.0 = Box::into_raw(Box::new(Chess::new(None)));
+        *chess = Box::into_raw(Box::new(Chess::new(None)));
     }
 }
 
@@ -60,18 +53,18 @@ unsafe impl Send for ChessWrapper {}
 unsafe impl Sync for ChessWrapper {}
 
 #[no_mangle]
-pub extern "C" fn chess_get_current_team(chess: ChessWrapper) -> Team {
-    unsafe {(*chess.0).player}
+pub extern "C" fn chess_get_current_team(chess: *mut Chess) -> Team {
+    unsafe {(*chess).player}
 }
 
 #[no_mangle]
-pub extern "C" fn chess_set_current_team(chess: ChessWrapper, team: Team) {
-    unsafe {(*chess.0).player = team}
+pub extern "C" fn chess_set_current_team(chess: *mut Chess, team: Team) {
+    unsafe {(*chess).player = team}
 }
 
 #[no_mangle]
-pub extern "C" fn chess_get_latest_move(chess: ChessWrapper) -> Move {
-    unsafe {(*chess.0).latest_move.expect("No move is available.")}
+pub extern "C" fn chess_get_latest_move(chess: *mut Chess) -> Move {
+    unsafe {(*chess).latest_move.expect("No move is available.")}
 }
 
 #[no_mangle]
@@ -128,12 +121,12 @@ pub extern "C" fn chess_free(chess: *mut Chess) {
 mod tests {
     use std::ptr::null_mut;
 
-    use crate::{chess_create, chess_run, Chess, ChessCreationWrapper, ChessWrapper};
+    use crate::{chess_create, chess_run, Chess, ChessWrapper};
 
     #[test]
     fn test_raw_lib() {
         let mut chess: *mut Chess = null_mut();
-        chess_create(ChessCreationWrapper(&mut chess));
+        chess_create(&mut chess);
 
         chess_run(ChessWrapper(chess));
         loop {
