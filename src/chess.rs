@@ -55,6 +55,9 @@ impl Chess {
             }
         }
 
+
+        spawn_figure(&mut fields, ROWS - 3, FigureType::Bishop);
+
         spawn_figure(&mut fields, 0, FigureType::Rook);
         spawn_figure(&mut fields, ROWS - 1, FigureType::Rook);
 

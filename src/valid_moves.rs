@@ -15,6 +15,7 @@ impl<'a> ValidMovesIter<'a> {
     pub fn next_fn(&mut self) {
         self.add = 1;
         self.fadd = self.fadds.next();
+        self.started_invalid = false;
     }
 }
 
