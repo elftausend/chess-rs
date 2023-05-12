@@ -57,8 +57,6 @@ impl Chess {
             }
         }
 
-        spawn_figure(&mut fields, ROWS - 3, FigureType::Bishop);
-
         spawn_figure(&mut fields, 0, FigureType::Rook);
         spawn_figure(&mut fields, ROWS - 1, FigureType::Rook);
 
@@ -125,7 +123,8 @@ impl Chess {
     }
 
     pub fn check_check(&self, team: Team) -> Option<()> {
-        let unique_valid_moves = self.fields
+        let unique_valid_moves = self
+            .fields
             .iter()
             .flatten()
             .filter_map(|field| Some((field, field.figure?)))
@@ -133,7 +132,8 @@ impl Chess {
             .flat_map(|(field, figure)| figure.valid_moves(field.idxs, &self.fields))
             .collect::<HashSet<(usize, usize)>>();
 
-        let (king_field, _) = self.fields
+        let (king_field, _) = self
+            .fields
             .iter()
             .flatten()
             .filter_map(|field| Some((field, field.figure?)))
@@ -221,7 +221,6 @@ impl Chess {
         (previous, clicked): ((usize, usize), (usize, usize)),
     ) -> Option<bool> {
         let dist = previous.1 as i32 - clicked.1 as i32;
-
         for mut modify in 1..dist.abs() {
             if dist.is_positive() {
                 modify = -modify;
@@ -232,8 +231,34 @@ impl Chess {
                 return None;
             }
         }
+        
+        // true on short rochade
+        Some(dist.abs() == 3)
+    }
 
-        Some(false)
+    pub fn rochade_swap(&mut self, dir: i32, rook_move: i32) {
+        let row = if self.player == Team::Black {
+            0
+        } else {
+            ROWS-1
+        };
+        let old_king_field = self.field_mut((row, 4));
+        let mut king = old_king_field.figure.expect("King should be there");
+        king.first_move = false;
+        old_king_field.figure = None;
+        
+        let new_king_field = self.field_mut((row, (4 + dir) as usize));
+        new_king_field.figure = Some(king);
+
+        let rook_col = if dir.is_negative() { 0 } else { COLS-1 };
+        let old_rook_field = self.field_mut((row, rook_col));
+        let mut rook = old_rook_field.figure.expect("Rook should be there");
+        rook.first_move = false;
+        old_rook_field.figure = None;
+
+        let new_rook_field = self.field_mut((row, (4 + dir + rook_move) as usize));
+        new_rook_field.figure = Some(rook);
+
     }
 
     pub fn select_or_move(&mut self, clicked: (usize, usize)) {
@@ -244,7 +269,16 @@ impl Chess {
         }
 
         if let Some(figures) = self.tried_rochade(clicked) {
-            if self.is_rochade_valid(figures).is_some() {}
+            match (self.is_rochade_valid(figures), self.check_check(self.player)) {
+                (Some(dir), None) => {
+                    let rook_move = 1 + dir as i32 * -2;
+                    let dir = -2 + dir as i32 * 4;
+                    self.rochade_swap(dir, rook_move)
+                }
+                _ => {}
+            }
+            
+
             self.selection.unselect_field();
             return;
         }
@@ -292,6 +326,32 @@ mod tests {
 
         chess.fields[3][4].figure = Some(figure);
         chess.fields[6][4].figure = None;
+
+        chess.check_check(crate::Team::White).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_is_king_in_check_two_blocked() {
+        let mut chess = Chess::new(None);
+        let figure = chess.fields[0][3].figure.unwrap();
+        chess.fields[0][3].figure = None;
+
+        chess.fields[3][4].figure = Some(figure);
+        // chess.fields[6][4].figure = None;
+
+        chess.check_check(crate::Team::White).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_is_king_in_check_wrong_team() {
+        let mut chess = Chess::new(None);
+        let figure = chess.fields[0][3].figure.unwrap();
+        chess.fields[0][3].figure = None;
+
+        chess.fields[3][4].figure = Some(figure);
+        // chess.fields[6][4].figure = None;
 
         chess.check_check(crate::Team::Black).unwrap();
     }

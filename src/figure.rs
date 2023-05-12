@@ -18,8 +18,14 @@ impl Figure {
         (row, col): (usize, usize),
         fields: &[[Field; 8]; 8],
     ) -> Vec<(usize, usize)> {
+        let (row, col) = (row as i16, col as i16);
         match self.figure {
-            FigureType::Pawn => pawn_moves((row, col), fields, self.team, self.first_move),
+            FigureType::Pawn => pawn_moves(
+                (row as usize, col as usize),
+                fields,
+                self.team,
+                self.first_move,
+            ),
             FigureType::King => vec![
                 is_move_valid((row + 1, col), fields, self.team),
                 is_move_valid((row + 1, col - 1), fields, self.team),
@@ -33,9 +39,9 @@ impl Figure {
             .into_iter()
             .flatten()
             .collect(),
-            FigureType::Queen => bishop_moves((row, col), fields, self.team)
+            FigureType::Queen => bishop_moves((row as usize, col as usize), fields, self.team)
                 .into_iter()
-                .chain(rook_moves((row, col), fields, self.team))
+                .chain(rook_moves((row as usize, col as usize), fields, self.team))
                 .collect(),
             FigureType::Knight => [
                 is_move_valid((row + 2, col + 1), fields, self.team),
@@ -50,10 +56,10 @@ impl Figure {
             .into_iter()
             .flatten()
             .collect(),
-            FigureType::Bishop => bishop_moves((row, col), fields, self.team)
+            FigureType::Bishop => bishop_moves((row as usize, col as usize), fields, self.team)
                 .into_iter()
                 .collect(),
-            FigureType::Rook => rook_moves((row, col), fields, self.team)
+            FigureType::Rook => rook_moves((row as usize, col as usize), fields, self.team)
                 .into_iter()
                 .collect(),
         }

@@ -3,11 +3,11 @@ use crate::{Field, Team, COLS, ROWS};
 pub struct ValidMovesIter<'a> {
     row: usize,
     col: usize,
-    fadds: std::vec::IntoIter<fn(usize, usize, usize) -> (usize, usize)>,
-    add: usize,
+    fadds: std::vec::IntoIter<fn(i16, i16, i16) -> (i16, i16)>,
+    add: i16,
     fields: &'a [[Field; 8]; 8],
     started_invalid: bool,
-    fadd: Option<fn(usize, usize, usize) -> (usize, usize)>,
+    fadd: Option<fn(i16, i16, i16) -> (i16, i16)>,
     team: Team,
 }
 
@@ -34,12 +34,13 @@ impl<'a> Iterator for ValidMovesIter<'a> {
 
         self.fadd?;
 
-        let mv = (self.fadd.as_ref().unwrap())(self.row, self.col, self.add);
+        let mv = (self.fadd.as_ref().unwrap())(self.row as i16, self.col as i16, self.add);
 
         if is_out_of_bounds(mv) {
             self.next_fn();
             return self.next();
         }
+        let mv = (mv.0 as usize, mv.1 as usize);
 
         if let Some(figure) = self.fields[mv.0][mv.1].figure {
             if self.team == figure.team {
@@ -58,7 +59,7 @@ impl<'a> Iterator for ValidMovesIter<'a> {
 pub struct ValidMoves<'a> {
     row: usize,
     col: usize,
-    f: Vec<fn(usize, usize, usize) -> (usize, usize)>,
+    f: Vec<fn(i16, i16, i16) -> (i16, i16)>,
     fields: &'a [[Field; 8]; 8],
     team: Team,
 }
@@ -67,7 +68,7 @@ impl<'a> ValidMoves<'a> {
     pub fn new(
         row: usize,
         col: usize,
-        f: Vec<fn(usize, usize, usize) -> (usize, usize)>,
+        f: Vec<fn(i16, i16, i16) -> (i16, i16)>,
         fields: &'a [[Field; 8]; 8],
         team: Team,
     ) -> Self {
@@ -103,10 +104,11 @@ impl<'a> IntoIterator for ValidMoves<'a> {
 }
 
 pub fn is_move_valid(
-    (row, col): (usize, usize),
+    (row, col): (i16, i16),
     fields: &[[Field; 8]; 8],
     team: Team,
 ) -> Option<(usize, usize)> {
+    let (row, col) = (row as usize, col as usize);
     if row >= ROWS || col >= COLS {
         return None;
     }
@@ -138,8 +140,8 @@ pub fn is_pawn_move_valid(
 }
 
 #[inline]
-fn is_out_of_bounds((row, col): (usize, usize)) -> bool {
-    row >= ROWS || col >= COLS
+fn is_out_of_bounds((row, col): (i16, i16)) -> bool {
+    row as usize >= ROWS || col as usize >= COLS
 }
 
 #[inline]
@@ -152,9 +154,10 @@ pub fn bishop_moves<'a>(
     fields: &'a [[Field; 8]; 8],
     team: Team,
 ) -> ValidMoves<'_> {
+    let (row, col) = (row as i16, col as i16);
     ValidMoves::new(
-        row,
-        col,
+        row as usize,
+        col as usize,
         vec![
             |row, col, add| (row + add, col + add),
             |row, col, add| (row - add, col.overflowing_sub(add).0),
@@ -221,7 +224,7 @@ pub fn pawn_moves(
 
     if first_move {
         let mv = (first_move_row, col);
-        if !is_out_of_bounds(mv) && !is_figure_on_field(mv, fields) {
+        if !is_out_of_bounds((mv.0 as i16, mv.1 as i16)) && !is_figure_on_field(mv, fields) {
             moves.push(mv);
         }
         if let Some(mv) = is_pawn_move_valid((first_move_row, col), fields) {
@@ -233,7 +236,6 @@ pub fn pawn_moves(
 
 #[cfg(test)]
 mod tests {
-
     /*
     #[test]
     fn test_valid_move_iter() {
