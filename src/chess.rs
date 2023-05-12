@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use macroquad::prelude::*;
 
 use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE, X_DIST, Y_DIST};
@@ -8,7 +10,7 @@ pub struct Move {
     pub start_row: usize,
     pub start_col: usize,
     pub end_row: usize,
-    pub end_col: usize,    
+    pub end_col: usize,
 }
 
 #[derive(Debug)]
@@ -17,7 +19,7 @@ pub struct Chess {
     pub sprites: Option<[Texture2D; 12]>,
     pub selection: Selection,
     pub player: Team,
-    pub latest_move: Option<Move>
+    pub latest_move: Option<Move>,
 }
 
 unsafe impl Send for Chess {}
@@ -55,7 +57,6 @@ impl Chess {
             }
         }
 
-
         spawn_figure(&mut fields, ROWS - 3, FigureType::Bishop);
 
         spawn_figure(&mut fields, 0, FigureType::Rook);
@@ -91,7 +92,7 @@ impl Chess {
             selection: Default::default(),
             sprites,
             player: Team::White,
-            latest_move: None
+            latest_move: None,
         }
     }
 
@@ -121,6 +122,28 @@ impl Chess {
             }
         }
         self.selection.draw();
+    }
+
+    pub fn check_check(&self, team: Team) -> Option<()> {
+        let unique_valid_moves = self.fields
+            .iter()
+            .flatten()
+            .filter_map(|field| Some((field, field.figure?)))
+            .filter(|(_, figure)| figure.team != team)
+            .flat_map(|(field, figure)| figure.valid_moves(field.idxs, &self.fields))
+            .collect::<HashSet<(usize, usize)>>();
+
+        let (king_field, _) = self.fields
+            .iter()
+            .flatten()
+            .filter_map(|field| Some((field, field.figure?)))
+            .find(|(_, figure)| figure.team == team && figure.figure == FigureType::King)?;
+
+        if unique_valid_moves.contains(&king_field.idxs) {
+            Some(())
+        } else {
+            None
+        }
     }
 
     pub fn has_clicked_field(&mut self, (mouse_x, mouse_y): (f32, f32)) -> Option<(usize, usize)> {
@@ -187,9 +210,9 @@ impl Chess {
 
         match (clicked_figure.figure, previous.figure) {
             (FigureType::King, FigureType::Rook) | (FigureType::Rook, FigureType::King) => {
-                return Some((self.selection.selected_field?, clicked))
+                Some((self.selection.selected_field?, clicked))
             }
-            (_, _) => return None,
+            (_, _) => None,
         }
     }
 
@@ -247,5 +270,29 @@ impl Chess {
         }
 
         self.select_field(clicked);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Chess;
+
+    #[test]
+    #[should_panic]
+    fn test_is_king_in_check() {
+        let chess = Chess::new(None);
+        chess.check_check(crate::Team::Black).unwrap();
+    }
+
+    #[test]
+    fn test_is_king_in_check_two() {
+        let mut chess = Chess::new(None);
+        let figure = chess.fields[0][3].figure.unwrap();
+        chess.fields[0][3].figure = None;
+
+        chess.fields[3][4].figure = Some(figure);
+        chess.fields[6][4].figure = None;
+
+        chess.check_check(crate::Team::Black).unwrap();
     }
 }

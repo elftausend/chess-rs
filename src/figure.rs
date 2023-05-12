@@ -87,7 +87,7 @@ impl ToString for Team {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum FigureType {
     Pawn,
