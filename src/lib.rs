@@ -5,7 +5,7 @@ pub use chess::Chess;
 mod field;
 mod selection;
 
-pub use chess::Move;
+pub use chess::*;
 pub use field::*;
 pub use figure::*;
 use macroquad::prelude::*;
@@ -17,6 +17,7 @@ const X_DIST: f32 = 20.;
 const Y_DIST: f32 = 20.;
 
 const ROWS: usize = 8;
+const ROWS_MAX_IDX: usize = 7;
 const COLS: usize = 8;
 
 // pub static RT: Lazy<Runtime> = Lazy::new(|| Runtime::new().unwrap());

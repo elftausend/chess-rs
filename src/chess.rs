@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use macroquad::prelude::*;
 
-use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE, X_DIST, Y_DIST};
+use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE, X_DIST, Y_DIST, ROWS_MAX_IDX, calc_promote_y, calc_promote_x};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
@@ -20,10 +20,17 @@ pub struct Chess {
     pub selection: Selection,
     pub player: Team,
     pub latest_move: Option<Move>,
+    pub state: State,
 }
 
 unsafe impl Send for Chess {}
 unsafe impl Sync for Chess {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum State {
+    Select,
+    Promote((usize, usize))
+}
 
 pub fn spawn_figure(fields: &mut [[Field; COLS]; ROWS], col: usize, figure_type: FigureType) {
     let black_field = &mut fields[0][col];
@@ -91,6 +98,7 @@ impl Chess {
             sprites,
             player: Team::White,
             latest_move: None,
+            state: State::Select
         }
     }
 
@@ -261,7 +269,78 @@ impl Chess {
 
     }
 
+    pub fn promote_pawn_at(&mut self, (row, col): (usize, usize), figure: FigureType) {
+        self.field_mut((row, col)).figure = Some(Figure {
+            figure,
+            team: self.player,
+            first_move: false,
+        });    
+    }
+
+    pub fn draw_promote_selection(&mut self, (mut row, col): (usize, usize)) {
+
+        let x = calc_promote_x(col);
+
+        let figures = [
+            FigureType::Queen,
+            FigureType::Rook,
+            FigureType::Bishop,
+            FigureType::Knight,
+        ];
+        
+        if self.player == Team::Black {
+            row -= 2;
+        }
+
+        for (idx, figure) in figures.into_iter().enumerate() {
+            let y = calc_promote_y(row, idx);
+
+            draw_rectangle(x, y, SIZE * 0.75, SIZE * 0.75, WHITE);
+            let sprite = self.sprites.unwrap()[figure as usize + self.player as usize * 6];
+            // draw_texture(sprite, x, y, WHITE);
+            
+            let mut params = DrawTextureParams::default();
+            params.dest_size = Some(vec2(SIZE * 0.75, SIZE * 0.75));
+
+            draw_texture_ex(sprite, x, y, WHITE, params);
+        }
+    }
+
+    pub fn has_clicked_promotion(&self, (mut row, col): (usize, usize), (mouse_x, mouse_y): (f32, f32)) -> Option<FigureType> {
+
+        if self.player == Team::Black {
+            row -= 2;
+        }
+
+        let start_x = calc_promote_x(col);
+        let start_y = calc_promote_y(row, 0);
+
+        let x = ((mouse_x - start_x) / (SIZE * 0.75)).floor();
+        let y = ((mouse_y - start_y) / (SIZE * 0.75)).floor();
+
+        if x as usize != 0 && y as usize > 3 {
+            return None
+        }
+
+
+        Some([
+            FigureType::Queen,
+            FigureType::Rook,
+            FigureType::Bishop,
+            FigureType::Knight,
+        ][y as usize])    
+    }
+
+    pub fn handle_promote_selection(&mut self, to_promote: (usize, usize), figure: FigureType) {
+        self.promote_pawn_at(to_promote, figure);
+        
+        self.player = !self.player;
+        self.state = State::Select;
+    }
+
     pub fn select_or_move(&mut self, clicked: (usize, usize)) {
+        
+        
         // unselect field if same field was clicked
         if self.selection.selected_field == Some(clicked) {
             self.selection.unselect_field();
@@ -286,9 +365,20 @@ impl Chess {
         // check if a valid move was selected
         if self.selection.moves.contains(&clicked) {
             let selected_field = self.selection.selected_field.unwrap();
-            self.player = !self.player;
+            
             self.move_figure(selected_field, clicked);
+        
+            match (clicked.0, self.player)  {
+                (0, Team::White) | (ROWS_MAX_IDX, Team::Black)  => {
+                    self.state = State::Promote(clicked);        
+                    self.selection.unselect_field();
+                    return;
+                }
+                _ => {}
+            }
+
             self.selection.unselect_field();
+            self.player = !self.player;
             return;
         }
 

@@ -1,6 +1,6 @@
 use macroquad::{prelude::YELLOW, shapes::draw_circle};
 
-use crate::{SIZE, X_DIST, Y_DIST};
+use crate::{SIZE, X_DIST, Y_DIST, FigureType};
 
 #[derive(Debug, Default)]
 pub struct Selection {
@@ -32,4 +32,12 @@ impl Selection {
         self.selected_field = None;
         self.moves.clear();
     }
+}
+
+pub fn calc_promote_x(col: usize) -> f32 {
+    (SIZE * 0.5) + (col+1) as f32 * SIZE
+}
+
+pub fn calc_promote_y(row: usize, height: usize) -> f32 {
+    height as f32 * SIZE * 0.75 + Y_DIST + row as f32 * SIZE
 }
