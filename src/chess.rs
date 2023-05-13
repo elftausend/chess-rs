@@ -2,7 +2,10 @@ use std::collections::HashSet;
 
 use macroquad::prelude::*;
 
-use crate::{figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, SIZE, X_DIST, Y_DIST, ROWS_MAX_IDX, calc_promote_y, calc_promote_x};
+use crate::{
+    calc_promote_x, calc_promote_y, figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS,
+    ROWS_MAX_IDX, SIZE, X_DIST, Y_DIST,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
@@ -27,9 +30,17 @@ unsafe impl Send for Chess {}
 unsafe impl Sync for Chess {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+pub struct Position {
+    pub row: usize,
+    pub col: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
 pub enum State {
     Select,
-    Promote((usize, usize))
+    Promote(Position),
 }
 
 pub fn spawn_figure(fields: &mut [[Field; COLS]; ROWS], col: usize, figure_type: FigureType) {
@@ -98,7 +109,7 @@ impl Chess {
             sprites,
             player: Team::White,
             latest_move: None,
-            state: State::Select
+            state: State::Select,
         }
     }
 
@@ -239,7 +250,7 @@ impl Chess {
                 return None;
             }
         }
-        
+
         // true on short rochade
         Some(dist.abs() == 3)
     }
@@ -248,17 +259,17 @@ impl Chess {
         let row = if self.player == Team::Black {
             0
         } else {
-            ROWS-1
+            ROWS - 1
         };
         let old_king_field = self.field_mut((row, 4));
         let mut king = old_king_field.figure.expect("King should be there");
         king.first_move = false;
         old_king_field.figure = None;
-        
+
         let new_king_field = self.field_mut((row, (4 + dir) as usize));
         new_king_field.figure = Some(king);
 
-        let rook_col = if dir.is_negative() { 0 } else { COLS-1 };
+        let rook_col = if dir.is_negative() { 0 } else { COLS - 1 };
         let old_rook_field = self.field_mut((row, rook_col));
         let mut rook = old_rook_field.figure.expect("Rook should be there");
         rook.first_move = false;
@@ -266,19 +277,17 @@ impl Chess {
 
         let new_rook_field = self.field_mut((row, (4 + dir + rook_move) as usize));
         new_rook_field.figure = Some(rook);
-
     }
 
-    pub fn promote_pawn_at(&mut self, (row, col): (usize, usize), figure: FigureType) {
-        self.field_mut((row, col)).figure = Some(Figure {
+    pub fn promote_pawn_at(&mut self, pos: (usize, usize), figure: FigureType) {
+        self.field_mut(pos).figure = Some(Figure {
             figure,
             team: self.player,
             first_move: false,
-        });    
+        });
     }
 
-    pub fn draw_promote_selection(&mut self, (mut row, col): (usize, usize)) {
-
+    pub fn draw_promote_selection(&mut self, Position { mut row, col }: Position) {
         let x = calc_promote_x(col);
 
         let figures = [
@@ -287,7 +296,7 @@ impl Chess {
             FigureType::Bishop,
             FigureType::Knight,
         ];
-        
+
         if self.player == Team::Black {
             row -= 2;
         }
@@ -297,8 +306,7 @@ impl Chess {
 
             draw_rectangle(x, y, SIZE * 0.75, SIZE * 0.75, WHITE);
             let sprite = self.sprites.unwrap()[figure as usize + self.player as usize * 6];
-            // draw_texture(sprite, x, y, WHITE);
-            
+
             let mut params = DrawTextureParams::default();
             params.dest_size = Some(vec2(SIZE * 0.75, SIZE * 0.75));
 
@@ -306,8 +314,11 @@ impl Chess {
         }
     }
 
-    pub fn has_clicked_promotion(&self, (mut row, col): (usize, usize), (mouse_x, mouse_y): (f32, f32)) -> Option<FigureType> {
-
+    pub fn has_clicked_promotion(
+        &self,
+        Position { mut row, col }: Position,
+        (mouse_x, mouse_y): (f32, f32),
+    ) -> Option<FigureType> {
         if self.player == Team::Black {
             row -= 2;
         }
@@ -319,28 +330,27 @@ impl Chess {
         let y = ((mouse_y - start_y) / (SIZE * 0.75)).floor();
 
         if x as usize != 0 && y as usize > 3 {
-            return None
+            return None;
         }
 
-
-        Some([
-            FigureType::Queen,
-            FigureType::Rook,
-            FigureType::Bishop,
-            FigureType::Knight,
-        ][y as usize])    
+        Some(
+            [
+                FigureType::Queen,
+                FigureType::Rook,
+                FigureType::Bishop,
+                FigureType::Knight,
+            ][y as usize],
+        )
     }
 
     pub fn handle_promote_selection(&mut self, to_promote: (usize, usize), figure: FigureType) {
         self.promote_pawn_at(to_promote, figure);
-        
+
         self.player = !self.player;
         self.state = State::Select;
     }
 
     pub fn select_or_move(&mut self, clicked: (usize, usize)) {
-        
-        
         // unselect field if same field was clicked
         if self.selection.selected_field == Some(clicked) {
             self.selection.unselect_field();
@@ -348,7 +358,10 @@ impl Chess {
         }
 
         if let Some(figures) = self.tried_rochade(clicked) {
-            match (self.is_rochade_valid(figures), self.check_check(self.player)) {
+            match (
+                self.is_rochade_valid(figures),
+                self.check_check(self.player),
+            ) {
                 (Some(dir), None) => {
                     let rook_move = 1 + dir as i32 * -2;
                     let dir = -2 + dir as i32 * 4;
@@ -356,7 +369,6 @@ impl Chess {
                 }
                 _ => {}
             }
-            
 
             self.selection.unselect_field();
             return;
@@ -365,12 +377,15 @@ impl Chess {
         // check if a valid move was selected
         if self.selection.moves.contains(&clicked) {
             let selected_field = self.selection.selected_field.unwrap();
-            
+
             self.move_figure(selected_field, clicked);
-        
-            match (clicked.0, self.player)  {
-                (0, Team::White) | (ROWS_MAX_IDX, Team::Black)  => {
-                    self.state = State::Promote(clicked);        
+
+            match (clicked.0, self.player) {
+                (0, Team::White) | (ROWS_MAX_IDX, Team::Black) => {
+                    self.state = State::Promote(Position {
+                        row: clicked.0,
+                        col: clicked.1,
+                    });
                     self.selection.unselect_field();
                     return;
                 }

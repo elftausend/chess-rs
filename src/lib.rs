@@ -69,6 +69,11 @@ pub extern "C" fn chess_get_latest_move(chess: *mut Chess) -> Move {
 }
 
 #[no_mangle]
+pub extern "C" fn chess_get_state(chess: *mut Chess) -> State {
+    unsafe { (*chess).state }
+}
+
+#[no_mangle]
 pub extern "C" fn chess_run(chess: ChessWrapper) {
     Runtime::new().unwrap().block_on(async {
         //tokio::task::spawn(async move {

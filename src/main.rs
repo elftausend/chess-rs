@@ -14,8 +14,9 @@ async fn main() {
             State::Promote(to_promote) => {
                 chess.draw_promote_selection(to_promote);
                 if is_mouse_button_pressed(MouseButton::Left) {
-                    if let Some(figure) = chess.has_clicked_promotion(to_promote, mouse_position()) {
-                        chess.handle_promote_selection(to_promote, figure)
+                    if let Some(figure) = chess.has_clicked_promotion(to_promote, mouse_position())
+                    {
+                        chess.handle_promote_selection((to_promote.row, to_promote.col), figure)
                     }
                 }
                 // self.handle_promote_selection(field.0);
@@ -29,8 +30,6 @@ async fn main() {
                 }
             }
         }
-
-        
 
         next_frame().await;
     }
