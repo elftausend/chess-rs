@@ -74,6 +74,23 @@ pub extern "C" fn chess_get_state(chess: *mut Chess) -> State {
 }
 
 #[no_mangle]
+pub extern "C" fn chess_set_figure_at(
+    chess: *mut Chess,
+    row: usize,
+    col: usize,
+    figure: FigureType,
+    team: Team,
+) {
+    unsafe {
+        (*chess).fields[row][col].figure = Some(Figure {
+            figure,
+            team,
+            first_move: true,
+        })
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn chess_run(chess: ChessWrapper) {
     Runtime::new().unwrap().block_on(async {
         //tokio::task::spawn(async move {
