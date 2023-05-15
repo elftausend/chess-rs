@@ -4,6 +4,7 @@ mod valid_moves;
 pub use chess::Chess;
 mod field;
 mod selection;
+mod special_moves;
 
 pub use chess::*;
 pub use field::*;

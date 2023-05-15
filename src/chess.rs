@@ -103,6 +103,15 @@ impl Chess {
             })
         }
 
+        let field = &mut fields[0][ROWS - 1];
+        field.figure = None;
+
+        let field = &mut fields[1][ROWS - 1];
+        field.figure = None;
+
+        let field = &mut fields[ROWS - 2][ROWS - 1];
+        field.figure = None;
+
         Chess {
             fields,
             selection: Default::default(),
@@ -380,8 +389,15 @@ impl Chess {
 
             self.move_figure(selected_field, clicked);
 
-            match (clicked.0, self.player) {
-                (0, Team::White) | (ROWS_MAX_IDX, Team::Black) => {
+            let figure = self
+                .field(clicked)
+                .figure
+                .expect("Figure should be there. Selection should not be possible without it.")
+                .figure;
+            
+            match (clicked.0, self.player, figure) {
+                (0, Team::White, FigureType::Pawn)
+                | (ROWS_MAX_IDX, Team::Black, FigureType::Pawn) => {
                     self.state = State::Promote(Position {
                         row: clicked.0,
                         col: clicked.1,
