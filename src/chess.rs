@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use macroquad::prelude::*;
 
 use crate::{
-    calc_promote_x, calc_promote_y, figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS,
-    ROWS_MAX_IDX, SIZE, X_DIST, Y_DIST,
+    figure::Figure, Field, FigureType, Selection, Team, COLS, ROWS, ROWS_MAX_IDX, SIZE, X_DIST,
+    Y_DIST,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,15 +102,6 @@ impl Chess {
                 first_move: true,
             })
         }
-
-        let field = &mut fields[0][ROWS - 1];
-        field.figure = None;
-
-        let field = &mut fields[1][ROWS - 1];
-        field.figure = None;
-
-        let field = &mut fields[ROWS - 2][ROWS - 1];
-        field.figure = None;
 
         Chess {
             fields,
@@ -216,149 +207,6 @@ impl Chess {
         self.field_mut(from).figure = None;
     }
 
-    pub fn tried_rochade(
-        &self,
-        clicked: (usize, usize),
-    ) -> Option<((usize, usize), (usize, usize))> {
-        let Some(clicked_figure) = self.field(clicked).figure else {
-            return None;
-        };
-
-        let Some(previous) = self.field(self.selection.selected_field?).figure else {
-            return None;
-        };
-
-        if !clicked_figure.first_move || !previous.first_move {
-            return None;
-        }
-
-        if clicked_figure.team != previous.team {
-            return None;
-        }
-
-        match (clicked_figure.figure, previous.figure) {
-            (FigureType::King, FigureType::Rook) | (FigureType::Rook, FigureType::King) => {
-                Some((self.selection.selected_field?, clicked))
-            }
-            (_, _) => None,
-        }
-    }
-
-    pub fn is_rochade_valid(
-        &self,
-        (previous, clicked): ((usize, usize), (usize, usize)),
-    ) -> Option<bool> {
-        let dist = previous.1 as i32 - clicked.1 as i32;
-        for mut modify in 1..dist.abs() {
-            if dist.is_positive() {
-                modify = -modify;
-            }
-
-            let next_col = (previous.1 as i32 + modify) as usize;
-            if self.field((previous.0, next_col)).figure.is_some() {
-                return None;
-            }
-        }
-
-        // true on short rochade
-        Some(dist.abs() == 3)
-    }
-
-    pub fn rochade_swap(&mut self, dir: i32, rook_move: i32) {
-        let row = if self.player == Team::Black {
-            0
-        } else {
-            ROWS - 1
-        };
-        let old_king_field = self.field_mut((row, 4));
-        let mut king = old_king_field.figure.expect("King should be there");
-        king.first_move = false;
-        old_king_field.figure = None;
-
-        let new_king_field = self.field_mut((row, (4 + dir) as usize));
-        new_king_field.figure = Some(king);
-
-        let rook_col = if dir.is_negative() { 0 } else { COLS - 1 };
-        let old_rook_field = self.field_mut((row, rook_col));
-        let mut rook = old_rook_field.figure.expect("Rook should be there");
-        rook.first_move = false;
-        old_rook_field.figure = None;
-
-        let new_rook_field = self.field_mut((row, (4 + dir + rook_move) as usize));
-        new_rook_field.figure = Some(rook);
-    }
-
-    pub fn promote_pawn_at(&mut self, pos: (usize, usize), figure: FigureType) {
-        self.field_mut(pos).figure = Some(Figure {
-            figure,
-            team: self.player,
-            first_move: false,
-        });
-    }
-
-    pub fn draw_promote_selection(&mut self, Position { mut row, col }: Position) {
-        let x = calc_promote_x(col);
-
-        let figures = [
-            FigureType::Queen,
-            FigureType::Rook,
-            FigureType::Bishop,
-            FigureType::Knight,
-        ];
-
-        if self.player == Team::Black {
-            row -= 2;
-        }
-
-        for (idx, figure) in figures.into_iter().enumerate() {
-            let y = calc_promote_y(row, idx);
-
-            draw_rectangle(x, y, SIZE * 0.75, SIZE * 0.75, WHITE);
-            let sprite = self.sprites.unwrap()[figure as usize + self.player as usize * 6];
-
-            let mut params = DrawTextureParams::default();
-            params.dest_size = Some(vec2(SIZE * 0.75, SIZE * 0.75));
-
-            draw_texture_ex(sprite, x, y, WHITE, params);
-        }
-    }
-
-    pub fn has_clicked_promotion(
-        &self,
-        Position { mut row, col }: Position,
-        (mouse_x, mouse_y): (f32, f32),
-    ) -> Option<FigureType> {
-        if self.player == Team::Black {
-            row -= 2;
-        }
-
-        let start_x = calc_promote_x(col);
-        let start_y = calc_promote_y(row, 0);
-
-        let x = ((mouse_x - start_x) / (SIZE * 0.75)).floor();
-        let y = ((mouse_y - start_y) / (SIZE * 0.75)).floor();
-
-        if x as usize != 0 && y as usize > 3 {
-            return None;
-        }
-
-        Some(
-            [
-                FigureType::Queen,
-                FigureType::Rook,
-                FigureType::Bishop,
-                FigureType::Knight,
-            ][y as usize],
-        )
-    }
-
-    pub fn handle_promote_selection(&mut self, to_promote: (usize, usize), figure: FigureType) {
-        self.promote_pawn_at(to_promote, figure);
-
-        self.player = !self.player;
-        self.state = State::Select;
-    }
-
     pub fn select_or_move(&mut self, clicked: (usize, usize)) {
         // unselect field if same field was clicked
         if self.selection.selected_field == Some(clicked) {
@@ -394,7 +242,7 @@ impl Chess {
                 .figure
                 .expect("Figure should be there. Selection should not be possible without it.")
                 .figure;
-            
+
             match (clicked.0, self.player, figure) {
                 (0, Team::White, FigureType::Pawn)
                 | (ROWS_MAX_IDX, Team::Black, FigureType::Pawn) => {
