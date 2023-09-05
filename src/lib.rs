@@ -73,6 +73,12 @@ pub extern "C" fn chess_get_latest_move(chess: *mut Chess) -> Move {
 pub extern "C" fn chess_get_state(chess: *mut Chess) -> State {
     unsafe { (*chess).state }
 }
+#[no_mangle]
+pub extern "C" fn chess_remove_figure_at(chess: *mut Chess, row: usize, col: usize) {
+    unsafe {
+        (*chess).fields[row][col].figure = None;
+    } 
+}
 
 #[no_mangle]
 pub extern "C" fn chess_set_figure_at(
