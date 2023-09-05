@@ -8,9 +8,21 @@ namespace chessrs {
 #endif
     enum Team {white=0,black=1};
 
+    enum FigureType {
+        Pawn=0,
+        King,
+        Queen,
+        Knight,
+        Rook,
+        Bishop,
+    };
+
+
     struct Move {
         size_t start_y, start_x, dest_y, dest_x;
     };
+
+
 
     void chess_create(void **);
     void chess_run(void *);
@@ -19,6 +31,10 @@ namespace chessrs {
     Team chess_get_current_team(void*);
     void chess_set_current_team(void*, Team);
     Move chess_get_latest_move(void*);
+
+
+    void chess_set_figure_at(void*, size_t y, size_t x, FigureType figure, Team team);
+
 
 
 
