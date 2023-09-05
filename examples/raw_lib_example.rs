@@ -1,4 +1,4 @@
-use chess_rs::{chess_create, chess_get_latest_move, chess_move, chess_run, ChessWrapper, Move};
+use chess_rs::{chess_create, chess_get_latest_move, chess_move, chess_run, ChessWrapper, Move, chess_remove_figure_at};
 use std::ptr::null_mut;
 
 fn main() {
@@ -22,6 +22,8 @@ fn main() {
                 end_col: 1
             }
         );
+
+        chess_remove_figure_at(chess.0, 7, 0);
     });
 
     chess_run(ChessWrapper(chess.0));
