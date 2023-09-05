@@ -34,7 +34,7 @@ namespace chessrs {
 
 
     void chess_set_figure_at(void*, size_t y, size_t x, FigureType figure, Team team);
-
+    void chess_remove_figure_at(void*, size_t y, size_t x);
 
 
 
