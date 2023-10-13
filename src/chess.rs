@@ -251,7 +251,7 @@ impl Chess {
                         row: clicked.0,
                         col: clicked.1,
                     });
-                    self.player = !self.player;
+                    // self.player = !self.player;
                     self.selection.unselect_field();
                     return;
                 }

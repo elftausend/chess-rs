@@ -19,7 +19,6 @@ async fn main() {
                         chess.handle_promote_selection((to_promote.row, to_promote.col), figure)
                     }
                 }
-                // self.handle_promote_selection(field.0);
             }
             State::Select => {
                 if is_mouse_button_pressed(MouseButton::Left) {
