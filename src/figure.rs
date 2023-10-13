@@ -62,6 +62,9 @@ impl Figure {
             FigureType::Rook => rook_moves((row as usize, col as usize), fields, self.team)
                 .into_iter()
                 .collect(),
+            FigureType::Empty => []
+                .into_iter()
+                .collect(),
         }
     }
 }
@@ -102,4 +105,5 @@ pub enum FigureType {
     Knight,
     Rook,
     Bishop,
+    Empty, // only for lib
 }

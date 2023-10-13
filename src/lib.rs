@@ -97,6 +97,25 @@ pub extern "C" fn chess_set_figure_at(
     }
 }
 
+
+#[no_mangle]
+pub extern "C" fn chess_get_figure_at(
+    chess: *mut Chess,
+    row: usize,
+    col: usize,
+) -> FigureType {
+    unsafe {
+        if (*chess).fields[row][col].figure.is_none() {
+            return figure::FigureType::Empty;
+        } else {
+            return (*chess).fields[row][col].figure.unwrap().figure;
+        }
+    }
+}
+
+
+
+
 #[no_mangle]
 pub extern "C" fn chess_run(chess: ChessWrapper) {
     Runtime::new().unwrap().block_on(async {
