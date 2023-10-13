@@ -105,7 +105,11 @@ pub extern "C" fn chess_get_figure_at(
     col: usize,
 ) -> FigureType {
     unsafe {
-        return (*chess).fields[row][col].figure.unwrap().figure;
+        if (*chess).fields[row][col].figure.is_none() {
+            return figure::FigureType::Empty;
+        } else {
+            return (*chess).fields[row][col].figure.unwrap().figure;
+        }
     }
 }
 

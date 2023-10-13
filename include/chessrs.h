@@ -15,6 +15,7 @@ namespace chessrs {
         Knight,
         Rook,
         Bishop,
+        Empty
     };
 
 
