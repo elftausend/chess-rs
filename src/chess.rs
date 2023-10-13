@@ -124,7 +124,7 @@ impl Chess {
         );
         for row in 0..ROWS {
             for col in 0..COLS {
-                let field = self.fields[row][col];
+                let field = &self.fields[row][col];
 
                 let field_color = if (row + col) % 2 == 0 {
                     Color::new(166. / 255., 181. / 255., 181. / 255., 1.)

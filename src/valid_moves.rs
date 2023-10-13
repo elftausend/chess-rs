@@ -141,7 +141,7 @@ pub fn is_pawn_move_valid(
 
 #[inline]
 fn is_out_of_bounds((row, col): (i16, i16)) -> bool {
-    row as usize >= ROWS || col as usize >= COLS
+    row < 0 || col < 0 || row as usize >= ROWS || col as usize >= COLS
 }
 
 #[inline]
@@ -194,6 +194,10 @@ pub fn pawn_moves(
     team: Team,
     first_move: bool,
 ) -> Vec<(usize, usize)> {
+    if row == 0 || row == 7 {
+        return vec![]
+    }
+
     let (row, first_move_row) = match team {
         Team::White => (row - 1, row - 2),
         Team::Black => (row + 1, row + 2),

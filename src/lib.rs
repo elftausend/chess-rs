@@ -109,14 +109,26 @@ pub extern "C" fn chess_run(chess: ChessWrapper) {
             // let chess = unsafe {&mut *chess.0};
             loop {
                 unsafe { &mut *chess.0 }.draw();
-
-                if is_mouse_button_pressed(MouseButton::Left) {
-                    let field = unsafe { &mut *chess.0 }.has_clicked_field(mouse_position());
-                    if let Some(clicked) = field {
-                        unsafe { &mut *chess.0 }.select_or_move(clicked)
+                
+                match unsafe { &mut *chess.0 }.state {
+                    State::Promote(to_promote) => {
+                        unsafe {&mut *chess.0}.draw_promote_selection(to_promote);
+                        if is_mouse_button_pressed(MouseButton::Left) {
+                            if let Some(figure) = unsafe {&mut *chess.0}.has_clicked_promotion(to_promote, mouse_position())
+                            {
+                                unsafe {&mut *chess.0}.handle_promote_selection((to_promote.row, to_promote.col), figure)
+                            }
+                        }
                     }
+                    State::Select => {
+                        if is_mouse_button_pressed(MouseButton::Left) {
+                            let field = unsafe { &mut *chess.0 }.has_clicked_field(mouse_position());
+                            if let Some(clicked) = field {
+                                unsafe { &mut *chess.0 }.select_or_move(clicked)
+                            }
+                        }
+                    },
                 }
-
                 next_frame().await;
             }
         });
