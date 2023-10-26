@@ -1,9 +1,12 @@
-use crate::{Chess, FigureType, Team};
+use crate::{Chess, FigureType, Team, valid_moves::is_out_of_bounds};
 
 // ilhan:
 
 impl Chess {
     pub fn check_en_passant(&self, mover_team: Team, pos: (usize, usize)) -> bool {
+        if is_out_of_bounds((pos.0 as i16, pos.1 as i16)) {
+            return true;
+        }
         let Some(figure) = self.field(pos).figure else {
             return false;
         };

@@ -142,7 +142,7 @@ pub fn is_pawn_move_valid(
 }
 
 #[inline]
-fn is_out_of_bounds((row, col): (i16, i16)) -> bool {
+pub fn is_out_of_bounds((row, col): (i16, i16)) -> bool {
     row < 0 || col < 0 || row as usize >= ROWS || col as usize >= COLS
 }
 
