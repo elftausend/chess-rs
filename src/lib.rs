@@ -77,7 +77,7 @@ pub extern "C" fn chess_get_state(chess: *mut Chess) -> State {
 pub extern "C" fn chess_remove_figure_at(chess: *mut Chess, row: usize, col: usize) {
     unsafe {
         (*chess).fields[row][col].figure = None;
-    } 
+    }
 }
 
 #[no_mangle]
@@ -97,13 +97,8 @@ pub extern "C" fn chess_set_figure_at(
     }
 }
 
-
 #[no_mangle]
-pub extern "C" fn chess_get_figure_at(
-    chess: *mut Chess,
-    row: usize,
-    col: usize,
-) -> FigureType {
+pub extern "C" fn chess_get_figure_at(chess: *mut Chess, row: usize, col: usize) -> FigureType {
     unsafe {
         if (*chess).fields[row][col].figure.is_none() {
             return figure::FigureType::Empty;
@@ -112,9 +107,6 @@ pub extern "C" fn chess_get_figure_at(
         }
     }
 }
-
-
-
 
 #[no_mangle]
 pub extern "C" fn chess_run(chess: ChessWrapper) {
@@ -128,25 +120,30 @@ pub extern "C" fn chess_run(chess: ChessWrapper) {
             // let chess = unsafe {&mut *chess.0};
             loop {
                 unsafe { &mut *chess.0 }.draw();
-                
+
                 match unsafe { &mut *chess.0 }.state {
                     State::Promote(to_promote) => {
-                        unsafe {&mut *chess.0}.draw_promote_selection(to_promote);
+                        unsafe { &mut *chess.0 }.draw_promote_selection(to_promote);
                         if is_mouse_button_pressed(MouseButton::Left) {
-                            if let Some(figure) = unsafe {&mut *chess.0}.has_clicked_promotion(to_promote, mouse_position())
+                            if let Some(figure) = unsafe { &mut *chess.0 }
+                                .has_clicked_promotion(to_promote, mouse_position())
                             {
-                                unsafe {&mut *chess.0}.handle_promote_selection((to_promote.row, to_promote.col), figure)
+                                unsafe { &mut *chess.0 }.handle_promote_selection(
+                                    (to_promote.row, to_promote.col),
+                                    figure,
+                                )
                             }
                         }
                     }
                     State::Select => {
                         if is_mouse_button_pressed(MouseButton::Left) {
-                            let field = unsafe { &mut *chess.0 }.has_clicked_field(mouse_position());
+                            let field =
+                                unsafe { &mut *chess.0 }.has_clicked_field(mouse_position());
                             if let Some(clicked) = field {
                                 unsafe { &mut *chess.0 }.select_or_move(clicked)
                             }
                         }
-                    },
+                    }
                 }
                 next_frame().await;
             }

@@ -1,4 +1,4 @@
-use std::ops::Not;
+use std::{collections::HashMap, ops::Not};
 
 use crate::{
     valid_moves::{bishop_moves, is_move_valid, pawn_moves, rook_moves},
@@ -17,6 +17,7 @@ impl Figure {
         &self,
         (row, col): (usize, usize),
         fields: &[[Field; 8]; 8],
+        en_passants: &HashMap<(usize, usize, Team), (usize, usize)>,
     ) -> Vec<(usize, usize)> {
         let (row, col) = (row as i16, col as i16);
         match self.figure {
@@ -25,6 +26,7 @@ impl Figure {
                 fields,
                 self.team,
                 self.first_move,
+                en_passants,
             ),
             FigureType::King => vec![
                 is_move_valid((row + 1, col), fields, self.team),
@@ -62,14 +64,12 @@ impl Figure {
             FigureType::Rook => rook_moves((row as usize, col as usize), fields, self.team)
                 .into_iter()
                 .collect(),
-            FigureType::Empty => []
-                .into_iter()
-                .collect(),
+            FigureType::Empty => [].into_iter().collect(),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum Team {
     White = 0,

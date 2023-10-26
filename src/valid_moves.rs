@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{Field, Team, COLS, ROWS};
 
 pub struct ValidMovesIter<'a> {
@@ -189,18 +191,19 @@ pub fn rook_moves<'a>(
 }
 
 pub fn pawn_moves(
-    (row, col): (usize, usize),
+    (org_row, col): (usize, usize),
     fields: &[[Field; 8]; 8],
     team: Team,
     first_move: bool,
+    en_passants: &HashMap<(usize, usize, Team), (usize, usize)>,
 ) -> Vec<(usize, usize)> {
-    if row == 0 || row == 7 {
-        return vec![]
+    if org_row == 0 || org_row == 7 {
+        return vec![];
     }
 
     let (row, first_move_row) = match team {
-        Team::White => (row - 1, row - 2),
-        Team::Black => (row + 1, row + 2),
+        Team::White => (org_row - 1, org_row - 2),
+        Team::Black => (org_row + 1, org_row + 2),
     };
 
     let mut moves = vec![];
@@ -224,6 +227,14 @@ pub fn pawn_moves(
         moves.push(mv)
     } else {
         return moves;
+    }
+
+    if let Some(en_passant_pawn) = en_passants.get(&(org_row, col, team)) {
+        if team == Team::White {
+            moves.push((en_passant_pawn.0 - 1, en_passant_pawn.1))
+        } else {
+            moves.push((en_passant_pawn.0 + 1, en_passant_pawn.1))
+        }
     }
 
     if first_move {

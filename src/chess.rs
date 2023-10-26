@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use macroquad::prelude::*;
 
@@ -24,6 +24,8 @@ pub struct Chess {
     pub player: Team,
     pub latest_move: Option<Move>,
     pub state: State,
+
+    pub en_passants: HashMap<(usize, usize, Team), (usize, usize)>,
 }
 
 unsafe impl Send for Chess {}
@@ -110,6 +112,7 @@ impl Chess {
             player: Team::White,
             latest_move: None,
             state: State::Select,
+            en_passants: Default::default(),
         }
     }
 
@@ -148,7 +151,9 @@ impl Chess {
             .flatten()
             .filter_map(|field| Some((field, field.figure?)))
             .filter(|(_, figure)| figure.team != team)
-            .flat_map(|(field, figure)| figure.valid_moves(field.idxs, &self.fields))
+            .flat_map(|(field, figure)| {
+                figure.valid_moves(field.idxs, &self.fields, &self.en_passants)
+            })
             .collect::<HashSet<(usize, usize)>>();
 
         let (king_field, _) = self
@@ -236,15 +241,26 @@ impl Chess {
         if self.selection.moves.contains(&clicked) {
             let selected_field = self.selection.selected_field.unwrap();
 
+            let first_move = self.field(selected_field).figure.unwrap().first_move;
+
+            self.remove_if_en_passant_pawn(self.player, selected_field, clicked);
+            self.invalidate_en_passants();
             self.move_figure(selected_field, clicked);
 
             let figure = self
                 .field(clicked)
                 .figure
-                .expect("Figure should be there. Selection should not be possible without it.")
-                .figure;
+                .expect("Figure should be there. Selection should not be possible without it.");
 
-            match (clicked.0, self.player, figure) {
+            if figure.figure == FigureType::Pawn && first_move {
+                if selected_field.0.abs_diff(clicked.0) == 2 {
+                    let (row, col) = clicked;
+                    self.add_to_en_passant_if_checked(self.player, (row, col + 1), (row, col));
+                    self.add_to_en_passant_if_checked(self.player, (row, col - 1), (row, col));
+                }
+            }
+
+            match (clicked.0, self.player, figure.figure) {
                 (0, Team::White, FigureType::Pawn)
                 | (ROWS_MAX_IDX, Team::Black, FigureType::Pawn) => {
                     self.state = State::Promote(Position {
@@ -271,7 +287,7 @@ impl Chess {
             if figure.team != self.player {
                 return;
             }
-            self.selection.moves = figure.valid_moves(field.idxs, &self.fields);
+            self.selection.moves = figure.valid_moves(field.idxs, &self.fields, &self.en_passants);
         }
 
         self.select_field(clicked);

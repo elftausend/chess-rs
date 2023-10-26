@@ -1,3 +1,3 @@
+mod en_passant;
 mod promoting;
 mod rochade;
-mod en_passant;
