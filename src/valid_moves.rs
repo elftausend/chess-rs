@@ -223,18 +223,18 @@ pub fn pawn_moves(
         }
     }
 
-    if let Some(mv) = is_pawn_move_valid((row, col), fields) {
-        moves.push(mv)
-    } else {
-        return moves;
-    }
-
     if let Some(en_passant_pawn) = en_passants.get(&(org_row, col, team)) {
         if team == Team::White {
             moves.push((en_passant_pawn.0 - 1, en_passant_pawn.1))
         } else {
             moves.push((en_passant_pawn.0 + 1, en_passant_pawn.1))
         }
+    }
+
+    if let Some(mv) = is_pawn_move_valid((row, col), fields) {
+        moves.push(mv)
+    } else {
+        return moves;
     }
 
     if first_move {
